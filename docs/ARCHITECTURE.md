@@ -8,6 +8,7 @@ Ligacup.se is a fullstack TypeScript monorepo running on a private home server (
 2. **Survive goal-event traffic spikes** — 10k–50k concurrent users hitting the same endpoint at the same second
 3. **League-agnostic** — pivot from World Cup to Allsvenskan with a DB row change, not a code change
 
+
 ---
 
 ## Technology Stack
