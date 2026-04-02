@@ -9,8 +9,6 @@ services:
       POSTGRES_DB: ligacup
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ligacup"]
       interval: 10s
@@ -24,13 +22,50 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  app:
+    image: ghcr.io/noahgradstock/ligacup:latest
+    container_name: ligacup-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # ── Database ──────────────────────────────────────────────────
+      DATABASE_URL: postgresql://ligacup:ligacup@postgres:5432/ligacup
+
+      # ── Redis ─────────────────────────────────────────────────────
+      REDIS_URL: redis://redis:6379
+
+      # ── Clerk (set in Portainer stack env) ────────────────────────
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
+
+      # ── App ───────────────────────────────────────────────────────
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://ligacup.se}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+
+      # ── AI ────────────────────────────────────────────────────────
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+
+      # ── Stripe ────────────────────────────────────────────────────
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 
 volumes:
   postgres_data:
