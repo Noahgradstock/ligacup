@@ -17,6 +17,19 @@ export default async function DashboardPage() {
         </span>
       </nav>
 
+      {/* Quick actions */}
+      <section className="border-b border-border px-6 py-4 flex gap-3">
+        <Link href="/predictions">
+          <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
+        </Link>
+        <Link href="/league/new">
+          <Button variant="outline" size="sm">+ Skapa tipslag</Button>
+        </Link>
+        <Link href="/join">
+          <Button variant="outline" size="sm">Gå med via länk</Button>
+        </Link>
+      </section>
+
       {/* Empty state */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6">
         <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-3xl">
