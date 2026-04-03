@@ -8,6 +8,7 @@ import { redis, keys } from "@/lib/redis";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
+import { AppNav } from "@/components/app-nav";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
 export default async function LeaguePage({
@@ -82,14 +83,13 @@ export default async function LeaguePage({
 
   return (
     <main className="flex flex-col min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/dashboard" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
-        </Link>
-        <Link href="/predictions">
-          <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
-        </Link>
-      </nav>
+      <AppNav
+        rightSlot={
+          <Link href="/predictions">
+            <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
+          </Link>
+        }
+      />
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
         {/* Header */}

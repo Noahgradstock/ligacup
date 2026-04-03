@@ -6,11 +6,12 @@ import {
   predictionRules,
   leagueMembers,
   pointSnapshots,
+  notifications,
+  users,
 } from "@/lib/db/schema";
 import { calcPoints } from "@/lib/predictor/points";
 import { redis, keys } from "@/lib/redis";
 import { cookies } from "next/headers";
-import { users } from "@/lib/db/schema";
 
 async function isAuthorized(): Promise<boolean> {
   const jar = await cookies();
@@ -42,23 +43,14 @@ export async function POST(request: Request) {
     return new Response("Invalid input", { status: 400 });
   }
 
-  // Fetch match
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId)).limit(1);
   if (!match) return new Response("Match not found", { status: 404 });
 
-  // Update match result
   await db
     .update(matches)
-    .set({
-      homeScore,
-      awayScore,
-      isResultConfirmed: true,
-      status: "completed",
-      updatedAt: new Date(),
-    })
+    .set({ homeScore, awayScore, isResultConfirmed: true, status: "completed", updatedAt: new Date() })
     .where(eq(matches.id, matchId));
 
-  // Fetch prediction rules for this tournament
   const [rules] = await db
     .select()
     .from(predictionRules)
@@ -71,7 +63,6 @@ export async function POST(request: Request) {
     pointsCorrectDraw: rules?.pointsCorrectDraw ?? 1,
   };
 
-  // Fetch all predictions for this match
   const matchPredictions = await db
     .select()
     .from(predictions)
@@ -83,28 +74,17 @@ export async function POST(request: Request) {
 
   const userIds = matchPredictions.map((p) => p.userId);
 
-  // Fetch all league memberships for these users in this tournament
   const memberships = await db
-    .select({
-      userId: leagueMembers.userId,
-      leagueId: leagueMembers.leagueId,
-    })
+    .select({ userId: leagueMembers.userId, leagueId: leagueMembers.leagueId })
     .from(leagueMembers)
-    .where(
-      and(
-        inArray(leagueMembers.userId, userIds),
-        eq(leagueMembers.isActive, true)
-      )
-    );
+    .where(and(inArray(leagueMembers.userId, userIds), eq(leagueMembers.isActive, true)));
 
-  // Build lookup: userId → leagueIds[]
   const userLeagues = new Map<string, string[]>();
   for (const m of memberships) {
     if (!userLeagues.has(m.userId)) userLeagues.set(m.userId, []);
     userLeagues.get(m.userId)!.push(m.leagueId);
   }
 
-  // Calculate and upsert point_snapshots for each (user, league)
   let totalAwarded = 0;
 
   for (const pred of matchPredictions) {
@@ -115,8 +95,8 @@ export async function POST(request: Request) {
     );
     totalAwarded += pts;
 
-    const leagues = userLeagues.get(pred.userId) ?? [];
-    for (const leagueId of leagues) {
+    const predLeagues = userLeagues.get(pred.userId) ?? [];
+    for (const leagueId of predLeagues) {
       const isExact = pts === pointRules.pointsExactScore;
       const isCorrect = pts === pointRules.pointsCorrectWinner || pts === pointRules.pointsCorrectDraw;
 
@@ -146,10 +126,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // Recalculate ranks + sync Redis sorted set per affected league
   const affectedLeagueIds = [...new Set(memberships.map((m) => m.leagueId))];
 
   for (const leagueId of affectedLeagueIds) {
+    // Snapshot BEFORE rank update to detect rank changes
+    const before = await db
+      .select({ userId: pointSnapshots.userId, rankInLeague: pointSnapshots.rankInLeague })
+      .from(pointSnapshots)
+      .where(eq(pointSnapshots.leagueId, leagueId));
+    const rankBefore = new Map(before.map((r) => [r.userId, r.rankInLeague]));
+
     const snapshots = await db
       .select({
         userId: pointSnapshots.userId,
@@ -163,38 +149,61 @@ export async function POST(request: Request) {
 
     const sorted = [...snapshots].sort((a, b) => b.totalPoints - a.totalPoints);
 
-    // Update ranks in Postgres
+    // Update ranks
     for (let i = 0; i < sorted.length; i++) {
       await db
         .update(pointSnapshots)
         .set({ rankInLeague: i + 1 })
-        .where(
-          and(
-            eq(pointSnapshots.userId, sorted[i].userId),
-            eq(pointSnapshots.leagueId, leagueId)
-          )
-        );
+        .where(and(eq(pointSnapshots.userId, sorted[i].userId), eq(pointSnapshots.leagueId, leagueId)));
     }
 
-    // Sync Redis sorted set — ZADD with member = JSON blob for O(1) leaderboard reads
-    const leaderboardKey = keys.leaderboard(leagueId);
-    const zaddArgs: (string | number)[] = [];
-    for (const s of sorted) {
-      zaddArgs.push(
-        s.totalPoints,
-        JSON.stringify({
-          userId: s.userId,
-          displayName: s.displayName,
-          email: s.email,
-        })
+    // Detect rank changes → create notifications for overtaken users
+    const overtakenNotifications: {
+      userId: string;
+      type: string;
+      payload: Record<string, unknown>;
+    }[] = [];
+
+    for (let i = 0; i < sorted.length; i++) {
+      const newRank = i + 1;
+      const oldRank = rankBefore.get(sorted[i].userId);
+      // Was previously ranked higher (lower number) and is now worse
+      if (oldRank !== null && oldRank !== undefined && newRank > oldRank) {
+        // Find who overtook them (the person now at their old rank)
+        const overtaker = sorted[oldRank - 1];
+        overtakenNotifications.push({
+          userId: sorted[i].userId,
+          type: "rank_overtaken",
+          payload: {
+            leagueId,
+            newRank,
+            oldRank,
+            overtakerName: overtaker?.displayName ?? overtaker?.email?.split("@")[0] ?? "Någon",
+          },
+        });
+      }
+    }
+
+    if (overtakenNotifications.length > 0) {
+      await db.insert(notifications).values(
+        overtakenNotifications.map((n) => ({
+          userId: n.userId,
+          type: n.type,
+          payload: n.payload,
+        }))
       );
     }
+
+    // Sync Redis sorted set
+    const zaddArgs: (string | number)[] = [];
+    for (const s of sorted) {
+      zaddArgs.push(s.totalPoints, JSON.stringify({ userId: s.userId, displayName: s.displayName, email: s.email }));
+    }
     if (zaddArgs.length > 0) {
-      await redis.zadd(leaderboardKey, ...zaddArgs);
-      await redis.expire(leaderboardKey, 60 * 60 * 24 * 7); // 7 days TTL
+      await redis.zadd(keys.leaderboard(leagueId), ...zaddArgs);
+      await redis.expire(keys.leaderboard(leagueId), 60 * 60 * 24 * 7);
     }
 
-    // Publish SSE event to all connected clients for this league
     await redis.publish(
       keys.leaderboardChannel(leagueId),
       JSON.stringify({ leagueId, matchId, updatedAt: new Date().toISOString() })

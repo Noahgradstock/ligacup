@@ -12,6 +12,7 @@ import {
   tournaments,
 } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
+import { AppNav } from "@/components/app-nav";
 
 export default async function DashboardPage() {
   const { userId: clerkId } = await auth();
@@ -114,15 +115,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-col min-h-screen">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
-        </Link>
-        <span className="text-sm text-muted-foreground truncate max-w-[160px]">
-          {displayName}
-        </span>
-      </nav>
+      <AppNav rightSlot={<span className="text-sm text-muted-foreground truncate max-w-[120px]">{displayName}</span>} />
 
       {/* Quick actions */}
       <section className="border-b border-border px-6 py-3 flex gap-2 flex-wrap">

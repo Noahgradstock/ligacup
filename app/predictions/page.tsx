@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { users, matches, teams, tournamentRounds, tournaments, predictions } from "@/lib/db/schema";
 import { MatchCard } from "@/components/match-card";
+import { AppNav } from "@/components/app-nav";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -68,12 +68,7 @@ export default async function PredictionsPage() {
 
   return (
     <main className="flex flex-col min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/dashboard" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
-        </Link>
-        <span className="text-sm text-muted-foreground">Mina tips</span>
-      </nav>
+      <AppNav />
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
         <div>
