@@ -4,8 +4,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { leagues, leagueMembers, users, pointSnapshots } from "@/lib/db/schema";
+import { redis, keys } from "@/lib/redis";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "./copy-button";
+import { Leaderboard } from "@/components/leaderboard";
+import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
 export default async function LeaguePage({
   params,
@@ -23,12 +26,10 @@ export default async function LeaguePage({
 
   if (!league) notFound();
 
-  // Resolve current user
   const dbUser = clerkId
     ? (await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1))[0] ?? null
     : null;
 
-  // Members with display info
   const members = await db
     .select({
       userId: leagueMembers.userId,
@@ -41,21 +42,36 @@ export default async function LeaguePage({
     .where(and(eq(leagueMembers.leagueId, id), eq(leagueMembers.isActive, true)))
     .orderBy(leagueMembers.joinedAt);
 
-  // Leaderboard from point_snapshots (empty until results confirmed)
-  const leaderboard = await db
-    .select({
-      userId: pointSnapshots.userId,
-      totalPoints: pointSnapshots.totalPoints,
-      rankInLeague: pointSnapshots.rankInLeague,
-      exactScores: pointSnapshots.exactScores,
-      correctWinners: pointSnapshots.correctWinners,
-      displayName: users.displayName,
-      email: users.email,
-    })
-    .from(pointSnapshots)
-    .innerJoin(users, eq(pointSnapshots.userId, users.id))
-    .where(eq(pointSnapshots.leagueId, id))
-    .orderBy(pointSnapshots.totalPoints);
+  // Initial leaderboard — try Redis, fall back to Postgres
+  let initialLeaderboard: LeaderboardEntry[] = [];
+  try {
+    const raw = await redis.zrevrange(keys.leaderboard(id), 0, -1, "WITHSCORES");
+    if (raw.length > 0) {
+      for (let i = 0; i < raw.length; i += 2) {
+        const member = JSON.parse(raw[i]);
+        initialLeaderboard.push({ ...member, totalPoints: parseInt(raw[i + 1], 10), rank: initialLeaderboard.length + 1 });
+      }
+    }
+  } catch {
+    // Redis unavailable — use Postgres
+  }
+
+  if (initialLeaderboard.length === 0) {
+    const rows = await db
+      .select({
+        userId: pointSnapshots.userId,
+        totalPoints: pointSnapshots.totalPoints,
+        displayName: users.displayName,
+        email: users.email,
+      })
+      .from(pointSnapshots)
+      .innerJoin(users, eq(pointSnapshots.userId, users.id))
+      .where(eq(pointSnapshots.leagueId, id));
+
+    initialLeaderboard = [...rows]
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+  }
 
   const isMember = dbUser ? members.some((m) => m.userId === dbUser.id) : false;
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/join/${league.inviteCode}`;
@@ -102,37 +118,14 @@ export default async function LeaguePage({
           </section>
         )}
 
-        {/* Leaderboard */}
+        {/* Live leaderboard */}
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Tabellen</h2>
-          {leaderboard.length === 0 ? (
-            <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-muted-foreground text-sm">
-              Inga poäng ännu. Poäng beräknas när matchresultat bekräftas.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {leaderboard.map((entry, i) => (
-                <div
-                  key={entry.userId}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-card"
-                >
-                  <span className="w-6 text-center text-sm font-bold text-muted-foreground">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 text-sm font-medium">
-                    {displayLabel(entry)}
-                    {dbUser && entry.userId === dbUser.id && (
-                      <span className="ml-2 text-xs text-primary">(du)</span>
-                    )}
-                  </span>
-                  <span className="text-sm font-bold">{entry.totalPoints}p</span>
-                  <span className="text-xs text-muted-foreground hidden sm:block">
-                    {entry.exactScores} exakta · {entry.correctWinners} rätta
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <Leaderboard
+            leagueId={id}
+            currentUserId={dbUser?.id ?? null}
+            initial={initialLeaderboard}
+          />
         </section>
 
         {/* Members */}
@@ -161,4 +154,3 @@ export default async function LeaguePage({
     </main>
   );
 }
-

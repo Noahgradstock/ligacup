@@ -8,8 +8,9 @@ import {
   pointSnapshots,
 } from "@/lib/db/schema";
 import { calcPoints } from "@/lib/predictor/points";
-
+import { redis, keys } from "@/lib/redis";
 import { cookies } from "next/headers";
+import { users } from "@/lib/db/schema";
 
 async function isAuthorized(): Promise<boolean> {
   const jar = await cookies();
@@ -145,17 +146,24 @@ export async function POST(request: Request) {
     }
   }
 
-  // Recalculate ranks within each affected league
+  // Recalculate ranks + sync Redis sorted set per affected league
   const affectedLeagueIds = [...new Set(memberships.map((m) => m.leagueId))];
+
   for (const leagueId of affectedLeagueIds) {
     const snapshots = await db
-      .select({ userId: pointSnapshots.userId, totalPoints: pointSnapshots.totalPoints })
+      .select({
+        userId: pointSnapshots.userId,
+        totalPoints: pointSnapshots.totalPoints,
+        displayName: users.displayName,
+        email: users.email,
+      })
       .from(pointSnapshots)
-      .where(eq(pointSnapshots.leagueId, leagueId))
-      .orderBy(pointSnapshots.totalPoints);
+      .innerJoin(users, eq(pointSnapshots.userId, users.id))
+      .where(eq(pointSnapshots.leagueId, leagueId));
 
-    // Sort desc
     const sorted = [...snapshots].sort((a, b) => b.totalPoints - a.totalPoints);
+
+    // Update ranks in Postgres
     for (let i = 0; i < sorted.length; i++) {
       await db
         .update(pointSnapshots)
@@ -167,6 +175,30 @@ export async function POST(request: Request) {
           )
         );
     }
+
+    // Sync Redis sorted set — ZADD with member = JSON blob for O(1) leaderboard reads
+    const leaderboardKey = keys.leaderboard(leagueId);
+    const zaddArgs: (string | number)[] = [];
+    for (const s of sorted) {
+      zaddArgs.push(
+        s.totalPoints,
+        JSON.stringify({
+          userId: s.userId,
+          displayName: s.displayName,
+          email: s.email,
+        })
+      );
+    }
+    if (zaddArgs.length > 0) {
+      await redis.zadd(leaderboardKey, ...zaddArgs);
+      await redis.expire(leaderboardKey, 60 * 60 * 24 * 7); // 7 days TTL
+    }
+
+    // Publish SSE event to all connected clients for this league
+    await redis.publish(
+      keys.leaderboardChannel(leagueId),
+      JSON.stringify({ leagueId, matchId, updatedAt: new Date().toISOString() })
+    );
   }
 
   return Response.json({ ok: true, pointsAwarded: totalAwarded, predictions: matchPredictions.length });
