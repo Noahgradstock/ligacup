@@ -57,12 +57,15 @@ services:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 
   # ── One-off migration + seed container ──────────────────────────────────────
-  # Not started automatically (no restart policy, no depends_on from app).
-  # Run manually from Portainer or CLI — see README for instructions.
+  # Uses plain node:20-alpine — no local build context needed.
+  # Clones the repo, installs deps, pushes schema, seeds data, then exits.
+  #
+  # HOW TO USE IN PORTAINER:
+  #   1. Deploy the stack normally (this service will run and exit on its own).
+  #   2. After it exits you can safely remove it — data is in Postgres.
+  #   3. To re-seed later: Portainer → Containers → ligacup-migrate → Recreate.
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile.migrate
+    image: node:20-alpine
     container_name: ligacup-migrate
     restart: "no"
     depends_on:
@@ -70,8 +73,16 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://ligacup:ligacup@postgres:5432/ligacup
-    profiles:
-      - tools  # Only starts when explicitly requested
+    command: >
+      sh -c "
+        apk add --no-cache git &&
+        git clone --depth=1 https://github.com/noahgradstock/ligacup.git /migrate &&
+        cd /migrate &&
+        npm ci --frozen-lockfile &&
+        npx drizzle-kit push &&
+        npx tsx scripts/seed.ts &&
+        echo '✅ Migration and seed complete.'
+      "
 
 volumes:
   postgres_data:
