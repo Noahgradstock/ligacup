@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { matches, teams, tournamentRounds, tournaments, predictions } from "@/lib/db/schema";
 import { MatchCard } from "@/components/match-card";
 import { AppNav } from "@/components/app-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import { syncCurrentUser } from "@/lib/sync-user";
 
 function toFlag(code: string | null) {
@@ -62,7 +63,7 @@ export default async function PredictionsPage() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
@@ -113,6 +114,7 @@ export default async function PredictionsPage() {
           })
         )}
       </div>
+      <BottomNav />
     </main>
   );
 }

@@ -3,6 +3,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, notifications, leagues } from "@/lib/db/schema";
 import { AppNav } from "@/components/app-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
 
 function formatPayload(type: string, payload: Record<string, unknown>): string {
@@ -52,7 +53,7 @@ export default async function NotificationsPage() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-6">
@@ -101,6 +102,7 @@ export default async function NotificationsPage() {
           </div>
         )}
       </div>
+      <BottomNav />
     </main>
   );
 }

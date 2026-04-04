@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/app-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import { syncCurrentUser } from "@/lib/sync-user";
 
 export default async function DashboardPage() {
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
   const progress = totalMatches > 0 ? Math.round((predictedCount / totalMatches) * 100) : 0;
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav rightSlot={<span className="text-sm text-muted-foreground truncate max-w-[120px]">{displayName}</span>} />
 
       {/* Quick actions */}
@@ -217,6 +218,7 @@ export default async function DashboardPage() {
           )}
         </section>
       </div>
+      <BottomNav />
     </main>
   );
 }

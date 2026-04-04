@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
 import { AppNav } from "@/components/app-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
@@ -75,7 +76,7 @@ export default async function LeaguePage({
   }
 
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav
         rightSlot={
           <Link href="/predictions">
@@ -156,6 +157,7 @@ export default async function LeaguePage({
           </div>
         </section>
       </div>
+      <BottomNav />
     </main>
   );
 }
