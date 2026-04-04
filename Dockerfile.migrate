@@ -1,0 +1,22 @@
+# Migration + seed image — NOT for production.
+# Contains drizzle-kit, tsx, and all source files needed to manage the DB.
+# Run as a one-off container via Portainer or: docker compose --profile tools run migrate
+
+FROM node:20-alpine
+WORKDIR /app
+
+# Install all dependencies (including devDependencies: drizzle-kit, tsx)
+COPY package.json package-lock.json ./
+RUN npm ci --frozen-lockfile
+
+# Copy everything needed for migrations and seeds
+COPY drizzle.config.ts ./
+COPY lib/ ./lib/
+COPY scripts/ ./scripts/
+
+# DATABASE_URL must be injected at runtime via environment variable.
+# Default command pushes the schema. Override CMD to seed instead.
+#
+#   Push schema:  docker compose --profile tools run --rm migrate
+#   Seed data:    docker compose --profile tools run --rm migrate npm run db:seed
+CMD ["node", "node_modules/drizzle-kit/bin.cjs", "push"]

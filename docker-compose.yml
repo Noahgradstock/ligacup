@@ -40,13 +40,8 @@ services:
       redis:
         condition: service_healthy
     environment:
-      # ── Database ──────────────────────────────────────────────────
       DATABASE_URL: postgresql://ligacup:ligacup@postgres:5432/ligacup
-
-      # ── Redis ─────────────────────────────────────────────────────
       REDIS_URL: redis://redis:6379
-
-      # ── Clerk (set in Portainer stack env) ────────────────────────
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
@@ -54,18 +49,29 @@ services:
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
       NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
       NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
-
-      # ── App ───────────────────────────────────────────────────────
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://ligacup.se}
       ADMIN_SECRET: ${ADMIN_SECRET}
-
-      # ── AI ────────────────────────────────────────────────────────
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-
-      # ── Stripe ────────────────────────────────────────────────────
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+
+  # ── One-off migration + seed container ──────────────────────────────────────
+  # Not started automatically (no restart policy, no depends_on from app).
+  # Run manually from Portainer or CLI — see README for instructions.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: ligacup-migrate
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ligacup:ligacup@postgres:5432/ligacup
+    profiles:
+      - tools  # Only starts when explicitly requested
 
 volumes:
   postgres_data:
