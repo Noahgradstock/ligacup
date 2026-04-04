@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
 import { AppNav } from "@/components/app-nav";
+import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
 export default async function LeaguePage({
@@ -17,19 +17,12 @@ export default async function LeaguePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { userId: clerkId } = await auth();
-
-  const [league] = await db
-    .select()
-    .from(leagues)
-    .where(eq(leagues.id, id))
-    .limit(1);
+  const [league, dbUser] = await Promise.all([
+    db.select().from(leagues).where(eq(leagues.id, id)).limit(1).then((r) => r[0] ?? null),
+    syncCurrentUser(),
+  ]);
 
   if (!league) notFound();
-
-  const dbUser = clerkId
-    ? (await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1))[0] ?? null
-    : null;
 
   const members = await db
     .select({

@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
-  users,
   leagues,
   leagueMembers,
   pointSnapshots,
@@ -13,13 +11,11 @@ import {
 } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/app-nav";
+import { syncCurrentUser } from "@/lib/sync-user";
 
 export default async function DashboardPage() {
-  const { userId: clerkId } = await auth();
-
-  const dbUser = clerkId
-    ? (await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1))[0] ?? null
-    : null;
+  // Auto-sync Clerk → DB on every dashboard load (idempotent upsert)
+  const dbUser = await syncCurrentUser();
 
   // 1. Which leagues is the user a member of?
   const memberships = dbUser

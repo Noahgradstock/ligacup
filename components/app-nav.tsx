@@ -18,6 +18,7 @@ export async function AppNav({ backHref, backLabel, rightSlot }: Props = {}) {
 
   let unreadCount = 0;
   if (clerkId) {
+    // Look up by clerkId — don't upsert here (AppNav renders on every page)
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (user) {
       const [{ value }] = await db

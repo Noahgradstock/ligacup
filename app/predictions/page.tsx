@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
-import { users, matches, teams, tournamentRounds, tournaments, predictions } from "@/lib/db/schema";
+import { matches, teams, tournamentRounds, tournaments, predictions } from "@/lib/db/schema";
 import { MatchCard } from "@/components/match-card";
 import { AppNav } from "@/components/app-nav";
+import { syncCurrentUser } from "@/lib/sync-user";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -14,12 +14,7 @@ function toFlag(code: string | null) {
 }
 
 export default async function PredictionsPage() {
-  const { userId: clerkId } = await auth();
-
-  // Resolve internal user (may not exist yet if webhook hasn't fired)
-  const dbUser = clerkId
-    ? (await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1))[0] ?? null
-    : null;
+  const dbUser = await syncCurrentUser();
 
   // Fetch all group stage matches for vm-2026
   const homeTeam = alias(teams, "home_team");

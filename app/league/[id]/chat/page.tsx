@@ -1,12 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { leagues, leagueMembers, users } from "@/lib/db/schema";
+import { leagues, leagueMembers } from "@/lib/db/schema";
 import { redis, keys } from "@/lib/redis";
 import { AppNav } from "@/components/app-nav";
 import { ChatRoom } from "@/components/chat-room";
+import { syncCurrentUser } from "@/lib/sync-user";
 import type { ChatMessage } from "@/app/api/leagues/[id]/messages/route";
 
 export default async function LeagueChatPage({
@@ -15,14 +15,14 @@ export default async function LeagueChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { userId: clerkId } = await auth();
-  if (!clerkId) redirect("/sign-in");
 
-  const [league] = await db.select().from(leagues).where(eq(leagues.id, id)).limit(1);
+  const [league, user] = await Promise.all([
+    db.select().from(leagues).where(eq(leagues.id, id)).limit(1).then((r) => r[0] ?? null),
+    syncCurrentUser(),
+  ]);
+
   if (!league) notFound();
-
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-  if (!user) redirect("/dashboard");
+  if (!user) redirect("/sign-in");
 
   // Must be a member
   const [membership] = await db
