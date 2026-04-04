@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema";
 import { calcPoints } from "@/lib/predictor/points";
 import { redis, keys } from "@/lib/redis";
+// keys.eventsChannel is the unified channel (leaderboardChannel is an alias)
 import { cookies } from "next/headers";
 
 async function isAuthorized(): Promise<boolean> {
@@ -205,8 +206,8 @@ export async function POST(request: Request) {
     }
 
     await redis.publish(
-      keys.leaderboardChannel(leagueId),
-      JSON.stringify({ leagueId, matchId, updatedAt: new Date().toISOString() })
+      keys.eventsChannel(leagueId),
+      JSON.stringify({ type: "leaderboard_updated", leagueId, matchId, updatedAt: new Date().toISOString() })
     );
   }
 

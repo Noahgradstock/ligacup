@@ -91,10 +91,22 @@ export default async function LeaguePage({
         }
       />
 
+      {/* Tab bar */}
+      <div className="border-b border-border px-6 pt-3 flex flex-col gap-2">
+        <p className="text-sm font-semibold">{league.name}</p>
+        <div className="flex gap-4 text-sm">
+          <span className="pb-2 border-b-2 border-primary text-foreground font-medium">
+            Tabell
+          </span>
+          <Link href={`/league/${id}/chat`} className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
+            Chatt
+          </Link>
+        </div>
+      </div>
+
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
         {/* Header */}
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
           <p className="text-sm text-muted-foreground">
             {members.length} {members.length === 1 ? "deltagare" : "deltagare"} · VM 2026
           </p>

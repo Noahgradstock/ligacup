@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     return new Response("Missing leagueId", { status: 400 });
   }
 
-  const channel = keys.leaderboardChannel(leagueId);
+  // Single unified channel — all league events (leaderboard + chat)
+  const channel = keys.eventsChannel(leagueId);
   const subscriber = createSubscriber();
 
   const stream = new ReadableStream({
@@ -20,18 +21,22 @@ export async function GET(request: NextRequest) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
       }
 
-      // Send a heartbeat immediately so the browser knows the connection is live
       send("connected", JSON.stringify({ leagueId }));
 
       subscriber.subscribe(channel, (err) => {
         if (err) controller.close();
       });
 
-      subscriber.on("message", (_chan: string, message: string) => {
-        send("leaderboard_updated", message);
+      subscriber.on("message", (_chan: string, raw: string) => {
+        try {
+          const payload = JSON.parse(raw) as { type: string };
+          // Route to the correct SSE event name based on payload.type
+          send(payload.type ?? "event", raw);
+        } catch {
+          send("event", raw);
+        }
       });
 
-      // Heartbeat every 25s to keep the connection alive through proxies
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": heartbeat\n\n"));
@@ -40,7 +45,6 @@ export async function GET(request: NextRequest) {
         }
       }, 25_000);
 
-      // Clean up when the client disconnects
       request.signal.addEventListener("abort", () => {
         clearInterval(heartbeat);
         subscriber.unsubscribe(channel).finally(() => subscriber.quit());
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
-      "X-Accel-Buffering": "no", // disable Nginx buffering
+      "X-Accel-Buffering": "no",
     },
   });
 }

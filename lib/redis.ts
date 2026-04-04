@@ -24,5 +24,10 @@ export function createSubscriber(): Redis {
 // Redis key helpers
 export const keys = {
   leaderboard: (leagueId: string) => `league:${leagueId}:leaderboard`,
-  leaderboardChannel: (leagueId: string) => `league:${leagueId}:leaderboard_updated`,
+  // Unified pub/sub channel — all league events flow through here
+  eventsChannel: (leagueId: string) => `league:${leagueId}:events`,
+  // Keep old name as alias so existing publish calls still work
+  leaderboardChannel: (leagueId: string) => `league:${leagueId}:events`,
+  // Recent messages list (LPUSH/LTRIM, capped at 200)
+  messages: (leagueId: string) => `league:${leagueId}:messages`,
 };
