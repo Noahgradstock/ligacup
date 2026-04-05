@@ -49,11 +49,22 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/sign-up">
-            <Button size="lg" className="text-base px-8">
-              Skapa tipslag gratis
-            </Button>
-          </Link>
+          <Show
+            when="signed-in"
+            fallback={
+              <Link href="/sign-up">
+                <Button size="lg" className="text-base px-8">
+                  Skapa tipslag gratis
+                </Button>
+              </Link>
+            }
+          >
+            <Link href="/league/new">
+              <Button size="lg" className="text-base px-8">
+                Skapa tipslag gratis
+              </Button>
+            </Link>
+          </Show>
           <Link href="/sign-in">
             <Button size="lg" variant="outline" className="text-base px-8">
               Gå med i ett lag

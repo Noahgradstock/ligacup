@@ -21,7 +21,12 @@ export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return new Response("Unauthorized", { status: 401 });
 
-  let body: { name: string };
+  let body: {
+    name: string;
+    isPublic?: boolean;
+    maxMembers?: number;
+    scoring?: { exactScore: number; correctWinner: number; correctDraw: number };
+  };
   try {
     body = await request.json();
   } catch {
@@ -32,6 +37,14 @@ export async function POST(request: Request) {
   if (!name || name.length < 2 || name.length > 50) {
     return new Response("Name must be 2–50 characters", { status: 400 });
   }
+
+  const maxMembers = Math.min(200, Math.max(2, body.maxMembers ?? 20));
+  const isPublic = body.isPublic ?? false;
+  const scoring = {
+    exactScore: Math.min(10, Math.max(0, body.scoring?.exactScore ?? 3)),
+    correctWinner: Math.min(10, Math.max(0, body.scoring?.correctWinner ?? 1)),
+    correctDraw: Math.min(10, Math.max(0, body.scoring?.correctDraw ?? 1)),
+  };
 
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
   if (!user) return new Response("User not found — webhook not yet processed", { status: 404 });
@@ -77,6 +90,9 @@ export async function POST(request: Request) {
       name,
       slug,
       inviteCode,
+      maxMembers,
+      isPublic,
+      configJson: { scoring },
     })
     .returning();
 
