@@ -15,12 +15,17 @@ export async function DELETE(
   if (!league) return new Response("Not found", { status: 404 });
   if (league.ownerId !== user.id) return new Response("Forbidden", { status: 403 });
 
-  // Delete in dependency order to avoid FK violations
-  await db.delete(punishments).where(eq(punishments.leagueId, id));
-  await db.delete(messages).where(eq(messages.leagueId, id));
-  await db.delete(pointSnapshots).where(eq(pointSnapshots.leagueId, id));
-  await db.delete(leagueMembers).where(eq(leagueMembers.leagueId, id));
-  await db.delete(leagues).where(eq(leagues.id, id));
+  try {
+    await db.delete(punishments).where(eq(punishments.leagueId, id));
+    await db.delete(messages).where(eq(messages.leagueId, id));
+    await db.delete(pointSnapshots).where(eq(pointSnapshots.leagueId, id));
+    await db.delete(leagueMembers).where(eq(leagueMembers.leagueId, id));
+    await db.delete(leagues).where(eq(leagues.id, id));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[DELETE /api/leagues/:id]", msg);
+    return new Response(msg, { status: 500 });
+  }
 
   return new Response(null, { status: 204 });
 }
