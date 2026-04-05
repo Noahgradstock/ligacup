@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider proxyUrl="/__clerk">
       <html lang="sv" className={`${plusJakartaSans.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col bg-background text-foreground">
           {children}

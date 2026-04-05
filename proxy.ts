@@ -13,6 +13,8 @@ const isProtectedRoute = createRouteMatcher([
 const isAuthRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // Skip proxying the Clerk proxy route itself
+  if (req.nextUrl.pathname.startsWith("/__clerk")) return;
   if (isProtectedRoute(req)) {
     await auth.protect();
     return;
