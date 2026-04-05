@@ -10,7 +10,7 @@ export default function LandingPage() {
           Ligacup<span className="text-primary">.se</span>
         </span>
         <div className="flex items-center gap-3">
-          <Link href="/sign-in">
+          <Link href="/dashboard">
             <Button variant="ghost" size="sm">Logga in</Button>
           </Link>
           <Link href="/league/new">
@@ -42,7 +42,7 @@ export default function LandingPage() {
               Skapa tipslag gratis
             </Button>
           </Link>
-          <Link href="/sign-in">
+          <Link href="/join">
             <Button size="lg" variant="outline" className="text-base px-8">
               Gå med i ett lag
             </Button>
