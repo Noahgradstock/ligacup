@@ -19,6 +19,21 @@ type Props = {
   pointsEarned: number | null;
 };
 
+type MemberPrediction = {
+  displayName: string;
+  homeScorePred: number;
+  awayScorePred: number;
+  pointsEarned: number | null;
+  isCurrentUser: boolean;
+};
+
+function pointsBadgeStyle(pts: number | null) {
+  if (pts === null) return null;
+  if (pts === 3) return { label: "+3p", cls: "bg-green-100 text-green-700 border-green-200" };
+  if (pts === 1) return { label: "+1p", cls: "bg-blue-100 text-blue-700 border-blue-200" };
+  return { label: "0p", cls: "bg-secondary text-muted-foreground border-border" };
+}
+
 export function MatchCard({
   matchId,
   leagueId,
@@ -40,6 +55,9 @@ export function MatchCard({
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     existingHome !== null ? "saved" : "idle"
   );
+  const [showOthers, setShowOthers] = useState(false);
+  const [others, setOthers] = useState<MemberPrediction[] | null>(null);
+  const [loadingOthers, setLoadingOthers] = useState(false);
 
   const hasPrediction = existingHome !== null;
   const dirty =
@@ -63,6 +81,27 @@ export function MatchCard({
     }
   }
 
+  async function toggleOthers() {
+    if (showOthers) {
+      setShowOthers(false);
+      return;
+    }
+    setShowOthers(true);
+    if (others !== null) return; // already loaded
+    setLoadingOthers(true);
+    try {
+      const res = await fetch(
+        `/api/leagues/${leagueId}/match-predictions?matchId=${matchId}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setOthers(data.predictions);
+      }
+    } finally {
+      setLoadingOthers(false);
+    }
+  }
+
   const time = new Date(scheduledAt).toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
@@ -70,15 +109,7 @@ export function MatchCard({
 
   const savedAndClean = status === "saved" && !dirty;
   const hasResult = actualHome !== null && actualAway !== null;
-
-  // Points badge styling
-  const pointsBadge = pointsEarned !== null
-    ? pointsEarned === 3
-      ? { label: "+3p", cls: "bg-green-100 text-green-700 border-green-200" }
-      : pointsEarned === 1
-      ? { label: "+1p", cls: "bg-blue-100 text-blue-700 border-blue-200" }
-      : { label: "0p", cls: "bg-secondary text-muted-foreground border-border" }
-    : null;
+  const myBadge = pointsBadgeStyle(pointsEarned);
 
   return (
     <div className={`rounded-xl border bg-card transition-colors ${
@@ -93,9 +124,9 @@ export function MatchCard({
           Grupp {groupName}
         </span>
         <div className="flex items-center gap-2">
-          {pointsBadge && (
-            <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${pointsBadge.cls}`}>
-              {pointsBadge.label}
+          {myBadge && (
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${myBadge.cls}`}>
+              {myBadge.label}
             </span>
           )}
           <span className="text-xs text-muted-foreground">{time}</span>
@@ -115,7 +146,6 @@ export function MatchCard({
         <div className="shrink-0 flex items-center gap-1.5 mx-1">
           {isLocked ? (
             <div className="flex flex-col items-center gap-1">
-              {/* Actual result */}
               {hasResult ? (
                 <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/5">
                   <span className="text-base font-bold font-mono tabular-nums">
@@ -127,13 +157,12 @@ export function MatchCard({
                   <span className="text-xs text-muted-foreground">Pågår</span>
                 </div>
               )}
-              {/* User's prediction */}
               {hasPrediction && (
                 <span className="text-xs font-mono tabular-nums text-muted-foreground">
                   Ditt tips: {existingHome}–{existingAway}
                 </span>
               )}
-              {!hasPrediction && isLocked && (
+              {!hasPrediction && (
                 <span className="text-xs text-muted-foreground">Inget tips</span>
               )}
             </div>
@@ -197,6 +226,59 @@ export function MatchCard({
               ? "Fel — försök igen"
               : "Spara"}
           </button>
+        </div>
+      )}
+
+      {/* Show others' predictions (locked matches only) */}
+      {isLocked && (
+        <div className="border-t border-border">
+          <button
+            onClick={toggleOthers}
+            className="w-full px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-between"
+          >
+            <span>Visa alla tips</span>
+            <span className="text-base leading-none">{showOthers ? "−" : "+"}</span>
+          </button>
+
+          {showOthers && (
+            <div className="px-4 pb-3 flex flex-col gap-1.5">
+              {loadingOthers && (
+                <p className="text-xs text-muted-foreground py-2 text-center">Laddar...</p>
+              )}
+              {!loadingOthers && others && others.length === 0 && (
+                <p className="text-xs text-muted-foreground py-2 text-center">
+                  Inga tips lagda.
+                </p>
+              )}
+              {!loadingOthers && others && others.map((p, i) => {
+                const badge = pointsBadgeStyle(p.pointsEarned);
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg ${
+                      p.isCurrentUser ? "bg-primary/5 border border-primary/15" : "bg-secondary/40"
+                    }`}
+                  >
+                    <span className={`text-xs font-medium truncate max-w-[120px] ${p.isCurrentUser ? "text-primary" : ""}`}>
+                      {p.displayName}{p.isCurrentUser && " (du)"}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-mono tabular-nums text-foreground">
+                        {p.homeScorePred}–{p.awayScorePred}
+                      </span>
+                      {badge ? (
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground w-8 text-right">–</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
