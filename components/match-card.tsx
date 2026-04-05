@@ -17,6 +17,7 @@ type Props = {
   actualHome: number | null;
   actualAway: number | null;
   pointsEarned: number | null;
+  onSave?: (matchId: string, home: number, away: number) => void;
 };
 
 type MemberPrediction = {
@@ -49,6 +50,7 @@ export function MatchCard({
   actualHome,
   actualAway,
   pointsEarned,
+  onSave,
 }: Props) {
   const [home, setHome] = useState(existingHome?.toString() ?? "");
   const [away, setAway] = useState(existingAway?.toString() ?? "");
@@ -79,6 +81,7 @@ export function MatchCard({
         setSavedHome(home);
         setSavedAway(away);
         setStatus("saved");
+        onSave?.(matchId, h, a);
       } else {
         setStatus("error");
       }

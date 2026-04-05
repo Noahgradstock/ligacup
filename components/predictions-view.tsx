@@ -34,10 +34,12 @@ type TeamRow = {
   pts: number;
 };
 
-function computeStandings(groupMatches: MatchRow[]): TeamRow[] {
+function computeStandings(
+  groupMatches: MatchRow[],
+  predMap: Map<string, { home: number; away: number }>
+): TeamRow[] {
   const map = new Map<string, TeamRow>();
 
-  // Register all teams first (alphabetical seed)
   for (const m of groupMatches) {
     if (!map.has(m.homeTeam))
       map.set(m.homeTeam, { name: m.homeTeam, flag: m.homeFlag, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 });
@@ -45,20 +47,21 @@ function computeStandings(groupMatches: MatchRow[]): TeamRow[] {
       map.set(m.awayTeam, { name: m.awayTeam, flag: m.awayFlag, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 });
   }
 
-  // Apply confirmed results
   for (const m of groupMatches) {
-    if (m.actualHome === null || m.actualAway === null) continue;
+    // Prioritise: confirmed result > user's saved prediction
+    const pred = predMap.get(m.matchId);
+    const h = m.actualHome ?? pred?.home ?? null;
+    const a = m.actualAway ?? pred?.away ?? null;
+    if (h === null || a === null) continue;
+
     const home = map.get(m.homeTeam)!;
     const away = map.get(m.awayTeam)!;
-    home.played++;
-    away.played++;
-    home.gf += m.actualHome;
-    home.ga += m.actualAway;
-    away.gf += m.actualAway;
-    away.ga += m.actualHome;
-    if (m.actualHome > m.actualAway) {
+    home.played++; away.played++;
+    home.gf += h; home.ga += a;
+    away.gf += a; away.ga += h;
+    if (h > a) {
       home.won++; home.pts += 3; away.lost++;
-    } else if (m.actualHome < m.actualAway) {
+    } else if (h < a) {
       away.won++; away.pts += 3; home.lost++;
     } else {
       home.drawn++; home.pts += 1; away.drawn++; away.pts += 1;
@@ -75,66 +78,98 @@ function computeStandings(groupMatches: MatchRow[]): TeamRow[] {
   });
 }
 
-function GroupStandings({ groupMatches }: { groupMatches: MatchRow[] }) {
-  const rows = computeStandings(groupMatches);
+function GroupStandings({
+  groupMatches,
+  predMap,
+}: {
+  groupMatches: MatchRow[];
+  predMap: Map<string, { home: number; away: number }>;
+}) {
+  const rows = computeStandings(groupMatches, predMap);
   if (rows.length === 0) return null;
+
+  const anyData = rows.some((r) => r.played > 0);
 
   return (
     <div className="mt-6 rounded-xl border border-border overflow-hidden">
-      <div className="px-4 py-2.5 bg-secondary/50 border-b border-border">
+      <div className="px-4 py-2.5 bg-secondary/50 border-b border-border flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tabell</span>
+        {anyData && (
+          <span className="text-xs text-muted-foreground italic">Baserad på dina tips</span>
+        )}
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-xs text-muted-foreground">
-            <th className="text-left px-4 py-2 font-medium w-full">Lag</th>
-            <th className="px-2 py-2 font-medium text-center">S</th>
-            <th className="px-2 py-2 font-medium text-center">V</th>
-            <th className="px-2 py-2 font-medium text-center">O</th>
-            <th className="px-2 py-2 font-medium text-center">F</th>
-            <th className="px-2 py-2 font-medium text-center">GM</th>
-            <th className="px-2 py-2 font-medium text-center">GD</th>
-            <th className="px-3 py-2 font-semibold text-center text-foreground">P</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((t, i) => (
-            <tr
-              key={t.name}
-              className={`border-b border-border last:border-0 transition-colors ${
-                i < 2 ? "bg-primary/5" : ""
-              }`}
-            >
-              <td className="px-4 py-2.5 flex items-center gap-2 font-medium">
-                <span className="text-base leading-none">{t.flag}</span>
-                <span className="truncate">{t.name}</span>
-              </td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">{t.played}</td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">{t.won}</td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">{t.drawn}</td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">{t.lost}</td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">{t.gf}–{t.ga}</td>
-              <td className="px-2 py-2.5 text-center text-muted-foreground">
-                {t.gf - t.ga > 0 ? `+${t.gf - t.ga}` : t.gf - t.ga}
-              </td>
-              <td className="px-3 py-2.5 text-center font-bold">{t.pts}</td>
+      {!anyData ? (
+        <p className="text-xs text-muted-foreground text-center py-4">
+          Lägg dina tips ovan för att se projicerade placeringar.
+        </p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-xs text-muted-foreground">
+              <th className="text-left px-4 py-2 font-medium w-full">Lag</th>
+              <th className="px-2 py-2 font-medium text-center">S</th>
+              <th className="px-2 py-2 font-medium text-center">V</th>
+              <th className="px-2 py-2 font-medium text-center">O</th>
+              <th className="px-2 py-2 font-medium text-center">F</th>
+              <th className="px-2 py-2 font-medium text-center">GM</th>
+              <th className="px-2 py-2 font-medium text-center">GD</th>
+              <th className="px-3 py-2 font-semibold text-center text-foreground">P</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((t, i) => (
+              <tr
+                key={t.name}
+                className={`border-b border-border last:border-0 transition-colors ${
+                  i < 2 ? "bg-primary/5" : ""
+                }`}
+              >
+                <td className="px-4 py-2.5 flex items-center gap-2 font-medium">
+                  <span className="text-base leading-none">{t.flag}</span>
+                  <span className="truncate">{t.name}</span>
+                </td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">{t.played}</td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">{t.won}</td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">{t.drawn}</td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">{t.lost}</td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">{t.gf}–{t.ga}</td>
+                <td className="px-2 py-2.5 text-center text-muted-foreground">
+                  {t.gf - t.ga > 0 ? `+${t.gf - t.ga}` : t.gf - t.ga}
+                </td>
+                <td className="px-3 py-2.5 text-center font-bold">{t.pts}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
 type Props = {
   matches: MatchRow[];
-  groups: string[]; // e.g. ["A","B","C","D","E","F","G","H"]
+  groups: string[];
   leagueId: string;
 };
 
 export function PredictionsView({ matches, groups, leagueId }: Props) {
   const router = useRouter();
   const [activeGroup, setActiveGroup] = useState<string>(groups[0] ?? "");
+
+  // Track user's predictions locally so table updates immediately on save
+  const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
+    const m = new Map<string, { home: number; away: number }>();
+    for (const match of matches) {
+      if (match.existingHome !== null && match.existingAway !== null) {
+        m.set(match.matchId, { home: match.existingHome, away: match.existingAway });
+      }
+    }
+    return m;
+  });
+
+  function handleSave(matchId: string, home: number, away: number) {
+    setPredMap((prev) => new Map(prev).set(matchId, { home, away }));
+  }
 
   useSSE({
     url: `/api/events?leagueId=${leagueId}`,
@@ -147,7 +182,6 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     ? [...matches].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
     : matches.filter((m) => m.groupName === activeGroup);
 
-  // Group filtered matches by date for the "Alla" view
   const byDate = new Map<string, MatchRow[]>();
   for (const m of filtered) {
     const key = m.scheduledAt.slice(0, 10);
@@ -193,7 +227,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                   {label}
                 </p>
                 {dayMatches.map((m) => (
-                  <MatchCard key={m.matchId} {...m} leagueId={leagueId} />
+                  <MatchCard key={m.matchId} {...m} leagueId={leagueId} onSave={handleSave} />
                 ))}
               </div>
             );
@@ -201,10 +235,10 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
         ) : (
           <>
             {filtered.map((m) => (
-              <MatchCard key={m.matchId} {...m} leagueId={leagueId} />
+              <MatchCard key={m.matchId} {...m} leagueId={leagueId} onSave={handleSave} />
             ))}
             {filtered.length > 0 && (
-              <GroupStandings groupMatches={filtered} />
+              <GroupStandings groupMatches={filtered} predMap={predMap} />
             )}
           </>
         )}
