@@ -79,6 +79,8 @@ export default async function LeaguePage({
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav
+        backHref="/dashboard"
+        backLabel="Dashboard"
         rightSlot={
           <Link href="/predictions">
             <Button variant="outline" size="sm">⚽ Tippa matcher</Button>

@@ -46,11 +46,8 @@ export default async function LeagueChatPage({
   return (
     <main className="flex flex-col h-screen">
       <AppNav
-        rightSlot={
-          <Link href={`/league/${id}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ← Tabell
-          </Link>
-        }
+        backHref="/dashboard"
+        backLabel="Dashboard"
       />
 
       {/* League name + tab bar */}
