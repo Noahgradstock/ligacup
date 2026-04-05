@@ -12,9 +12,9 @@ async function main() {
   await db.execute(sql`
     DELETE FROM matches
     WHERE id NOT IN (
-      SELECT MIN(id)
+      SELECT DISTINCT ON (tournament_id, home_team_id, away_team_id) id
       FROM matches
-      GROUP BY tournament_id, home_team_id, away_team_id
+      ORDER BY tournament_id, home_team_id, away_team_id, created_at ASC
     )
   `);
 
