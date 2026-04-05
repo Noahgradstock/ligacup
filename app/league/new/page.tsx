@@ -44,22 +44,10 @@ const FEATURES: Feature[] = [
     desc: "Vilken spelare gör flest mål i turneringen?",
   },
   {
-    key: "group_winners",
-    emoji: "📋",
-    title: "Gruppvinnare",
-    desc: "Tippa vilka lag som vinner respektive grupp i gruppspelet.",
-  },
-  {
-    key: "finalist",
-    emoji: "🥈",
-    title: "Finalist",
-    desc: "Vilket lag når finalen? Poäng oavsett om de vinner eller förlorar.",
-  },
-  {
-    key: "most_red_cards",
-    emoji: "🟥",
-    title: "Flest röda kort",
-    desc: "Vilket lag får flest röda kort under turneringen?",
+    key: "most_yellow_cards",
+    emoji: "🟨",
+    title: "Flest gula kort",
+    desc: "Vilket lag får flest gula kort under turneringen?",
   },
 ];
 
