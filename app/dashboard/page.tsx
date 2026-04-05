@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
+import { LeagueCardList } from "@/components/league-card-list";
 import { syncCurrentUser } from "@/lib/sync-user";
 
 export default async function DashboardPage() {
@@ -63,17 +64,7 @@ export default async function DashboardPage() {
   const snapshotByLeague = new Map(snapshotRows.map((s) => [s.leagueId, s]));
   const countByLeague = new Map(memberCountRows.map((r) => [r.leagueId, r.value]));
 
-  type LeagueCard = {
-    id: string;
-    name: string;
-    inviteCode: string;
-    totalPoints: number;
-    rankInLeague: number | null;
-    matchesPlayed: number;
-    memberCount: number;
-  };
-
-  const leagueCards: LeagueCard[] = leagueRows.map((league) => {
+  const leagueCards = leagueRows.map((league) => {
     const snap = snapshotByLeague.get(league.id);
     return {
       id: league.id,
@@ -83,6 +74,7 @@ export default async function DashboardPage() {
       rankInLeague: snap?.rankInLeague ?? null,
       matchesPlayed: snap?.matchesPlayed ?? 0,
       memberCount: countByLeague.get(league.id) ?? 1,
+      isOwner: dbUser ? league.ownerId === dbUser.id : false,
     };
   });
 
@@ -180,44 +172,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {leagueCards.map((card) => (
-                <Link key={card.id} href={`/league/${card.id}`}>
-                  <div className="flex items-center gap-4 px-5 py-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                    {/* Rank badge */}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                        card.rankInLeague === 1
-                          ? "bg-yellow-100 text-yellow-700"
-                          : card.rankInLeague === 2
-                          ? "bg-slate-100 text-slate-600"
-                          : card.rankInLeague === 3
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{card.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {card.memberCount}{" "}
-                        {card.memberCount === 1 ? "deltagare" : "deltagare"}
-                        {card.matchesPlayed > 0 &&
-                          ` · ${card.matchesPlayed} match${card.matchesPlayed === 1 ? "" : "er"} spelade`}
-                      </p>
-                    </div>
-
-                    {/* Points */}
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-bold tabular-nums">{card.totalPoints}p</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <LeagueCardList cards={leagueCards} />
           )}
         </section>
       </div>

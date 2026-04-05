@@ -9,6 +9,7 @@ import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
+import { DeleteLeagueButton } from "./delete-league-button";
 import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
@@ -156,6 +157,13 @@ export default async function LeaguePage({
             ))}
           </div>
         </section>
+
+        {/* Owner settings */}
+        {dbUser && league.ownerId === dbUser.id && (
+          <section className="flex flex-col gap-2 pt-4 border-t border-border">
+            <DeleteLeagueButton leagueId={id} leagueName={league.name} />
+          </section>
+        )}
       </div>
       <BottomNav />
     </main>
