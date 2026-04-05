@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MatchCard } from "@/components/match-card";
+import { useSSE } from "@/hooks/use-sse";
 
 type MatchRow = {
   matchId: string;
@@ -131,7 +133,15 @@ type Props = {
 };
 
 export function PredictionsView({ matches, groups, leagueId }: Props) {
+  const router = useRouter();
   const [activeGroup, setActiveGroup] = useState<string>(groups[0] ?? "");
+
+  useSSE({
+    url: `/api/events?leagueId=${leagueId}`,
+    onMessage: (event) => {
+      if (event === "leaderboard_updated") router.refresh();
+    },
+  });
 
   const filtered = activeGroup === "Alla"
     ? [...matches].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
