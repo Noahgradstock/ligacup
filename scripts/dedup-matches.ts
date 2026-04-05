@@ -1,12 +1,13 @@
 import "dotenv/config";
 import { db } from "../lib/db";
-import { sql } from "drizzle-orm";
+import { matches } from "../lib/db/schema";
+import { sql, count } from "drizzle-orm";
 
 async function main() {
   console.log("🧹 Removing duplicate matches...");
 
-  const before = await db.execute(sql`SELECT COUNT(*) as count FROM matches`);
-  console.log(`Before: ${(before.rows[0] as { count: string }).count} matches`);
+  const [{ value: before }] = await db.select({ value: count() }).from(matches);
+  console.log(`Before: ${before} matches`);
 
   await db.execute(sql`
     DELETE FROM matches
@@ -17,8 +18,8 @@ async function main() {
     )
   `);
 
-  const after = await db.execute(sql`SELECT COUNT(*) as count FROM matches`);
-  console.log(`After: ${(after.rows[0] as { count: string }).count} matches`);
+  const [{ value: after }] = await db.select({ value: count() }).from(matches);
+  console.log(`After: ${after} matches`);
   console.log("✅ Done!");
 }
 
