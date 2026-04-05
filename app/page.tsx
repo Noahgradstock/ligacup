@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Show, SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
@@ -11,23 +10,12 @@ export default function LandingPage() {
           Ligacup<span className="text-primary">.se</span>
         </span>
         <div className="flex items-center gap-3">
-          <Show
-            when="signed-in"
-            fallback={
-              <>
-                <SignInButton mode="modal">
-                  <Button variant="ghost" size="sm">Logga in</Button>
-                </SignInButton>
-                <Link href="/sign-up">
-                  <Button size="sm">Kom igång</Button>
-                </Link>
-              </>
-            }
-          >
-            <Link href="/dashboard">
-              <Button size="sm">Till tiplaget →</Button>
-            </Link>
-          </Show>
+          <Link href="/sign-in">
+            <Button variant="ghost" size="sm">Logga in</Button>
+          </Link>
+          <Link href="/league/new">
+            <Button size="sm">Kom igång</Button>
+          </Link>
         </div>
       </nav>
 
@@ -49,22 +37,11 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Show
-            when="signed-in"
-            fallback={
-              <Link href="/sign-up">
-                <Button size="lg" className="text-base px-8">
-                  Skapa tipslag gratis
-                </Button>
-              </Link>
-            }
-          >
-            <Link href="/league/new">
-              <Button size="lg" className="text-base px-8">
-                Skapa tipslag gratis
-              </Button>
-            </Link>
-          </Show>
+          <Link href="/league/new">
+            <Button size="lg" className="text-base px-8">
+              Skapa tipslag gratis
+            </Button>
+          </Link>
           <Link href="/sign-in">
             <Button size="lg" variant="outline" className="text-base px-8">
               Gå med i ett lag
