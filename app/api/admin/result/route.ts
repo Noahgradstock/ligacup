@@ -1,10 +1,9 @@
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   matches,
   predictions,
   predictionRules,
-  leagueMembers,
   pointSnapshots,
   notifications,
   users,
@@ -73,22 +72,12 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, pointsAwarded: 0 });
   }
 
-  const userIds = matchPredictions.map((p) => p.userId);
-
-  const memberships = await db
-    .select({ userId: leagueMembers.userId, leagueId: leagueMembers.leagueId })
-    .from(leagueMembers)
-    .where(and(inArray(leagueMembers.userId, userIds), eq(leagueMembers.isActive, true)));
-
-  const userLeagues = new Map<string, string[]>();
-  for (const m of memberships) {
-    if (!userLeagues.has(m.userId)) userLeagues.set(m.userId, []);
-    userLeagues.get(m.userId)!.push(m.leagueId);
-  }
-
   let totalAwarded = 0;
 
   for (const pred of matchPredictions) {
+    // Skip predictions not scoped to a league (legacy global predictions)
+    if (!pred.leagueId) continue;
+
     const pts = calcPoints(
       { home: pred.homeScorePred, away: pred.awayScorePred },
       { home: homeScore, away: awayScore },
@@ -96,8 +85,8 @@ export async function POST(request: Request) {
     );
     totalAwarded += pts;
 
-    const predLeagues = userLeagues.get(pred.userId) ?? [];
-    for (const leagueId of predLeagues) {
+    {
+      const leagueId = pred.leagueId;
       const isExact = pts === pointRules.pointsExactScore;
       const isCorrect = pts === pointRules.pointsCorrectWinner || pts === pointRules.pointsCorrectDraw;
 
@@ -127,7 +116,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const affectedLeagueIds = [...new Set(memberships.map((m) => m.leagueId))];
+  const affectedLeagueIds = [...new Set(
+    matchPredictions.map((p) => p.leagueId).filter((id): id is string => id !== null)
+  )];
 
   for (const leagueId of affectedLeagueIds) {
     // Snapshot BEFORE rank update to detect rank changes

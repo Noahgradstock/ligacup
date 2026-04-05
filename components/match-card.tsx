@@ -14,6 +14,9 @@ type Props = {
   existingHome: number | null;
   existingAway: number | null;
   isLocked: boolean;
+  actualHome: number | null;
+  actualAway: number | null;
+  pointsEarned: number | null;
 };
 
 export function MatchCard({
@@ -28,6 +31,9 @@ export function MatchCard({
   existingHome,
   existingAway,
   isLocked,
+  actualHome,
+  actualAway,
+  pointsEarned,
 }: Props) {
   const [home, setHome] = useState(existingHome?.toString() ?? "");
   const [away, setAway] = useState(existingAway?.toString() ?? "");
@@ -63,17 +69,37 @@ export function MatchCard({
   });
 
   const savedAndClean = status === "saved" && !dirty;
+  const hasResult = actualHome !== null && actualAway !== null;
+
+  // Points badge styling
+  const pointsBadge = pointsEarned !== null
+    ? pointsEarned === 3
+      ? { label: "+3p", cls: "bg-green-100 text-green-700 border-green-200" }
+      : pointsEarned === 1
+      ? { label: "+1p", cls: "bg-blue-100 text-blue-700 border-blue-200" }
+      : { label: "0p", cls: "bg-secondary text-muted-foreground border-border" }
+    : null;
 
   return (
     <div className={`rounded-xl border bg-card transition-colors ${
-      savedAndClean ? "border-green-200 bg-green-50/30" : "border-border"
+      savedAndClean && !isLocked ? "border-green-200 bg-green-50/30" :
+      hasResult && pointsEarned === 3 ? "border-green-200 bg-green-50/20" :
+      hasResult && pointsEarned === 1 ? "border-blue-200 bg-blue-50/20" :
+      "border-border"
     }`}>
       {/* Meta row */}
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
         <span className="text-xs font-semibold text-primary tracking-wide">
           Grupp {groupName}
         </span>
-        <span className="text-xs text-muted-foreground">{time}</span>
+        <div className="flex items-center gap-2">
+          {pointsBadge && (
+            <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${pointsBadge.cls}`}>
+              {pointsBadge.label}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">{time}</span>
+        </div>
       </div>
 
       {/* Teams + score row */}
@@ -88,13 +114,27 @@ export function MatchCard({
         {/* Score inputs */}
         <div className="shrink-0 flex items-center gap-1.5 mx-1">
           {isLocked ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted">
-              {hasPrediction ? (
-                <span className="text-base font-bold font-mono tabular-nums text-muted-foreground">
-                  {existingHome} – {existingAway}
-                </span>
+            <div className="flex flex-col items-center gap-1">
+              {/* Actual result */}
+              {hasResult ? (
+                <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/5">
+                  <span className="text-base font-bold font-mono tabular-nums">
+                    {actualHome} – {actualAway}
+                  </span>
+                </div>
               ) : (
-                <span className="text-xs text-muted-foreground px-1">Låst</span>
+                <div className="px-3 py-1.5 rounded-lg bg-muted">
+                  <span className="text-xs text-muted-foreground">Pågår</span>
+                </div>
+              )}
+              {/* User's prediction */}
+              {hasPrediction && (
+                <span className="text-xs font-mono tabular-nums text-muted-foreground">
+                  Ditt tips: {existingHome}–{existingAway}
+                </span>
+              )}
+              {!hasPrediction && isLocked && (
+                <span className="text-xs text-muted-foreground">Inget tips</span>
               )}
             </div>
           ) : (

@@ -15,6 +15,9 @@ type MatchRow = {
   existingHome: number | null;
   existingAway: number | null;
   isLocked: boolean;
+  actualHome: number | null;
+  actualAway: number | null;
+  pointsEarned: number | null;
 };
 
 type Props = {

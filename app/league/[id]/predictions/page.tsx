@@ -15,6 +15,7 @@ import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionsView } from "@/components/predictions-view";
 import { syncCurrentUser } from "@/lib/sync-user";
+import { calcPoints } from "@/lib/predictor/points";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -97,8 +98,18 @@ export default async function LeaguePredictionsPage({
       .filter(Boolean)
   )].sort();
 
+  const defaultRules = { pointsExactScore: 3, pointsCorrectWinner: 1, pointsCorrectDraw: 1 };
+
   const matchData = rows.map(({ match, homeTeam: ht, awayTeam: at }) => {
     const pred = predMap.get(match.id) ?? null;
+    const hasResult = match.isResultConfirmed && match.homeScore !== null && match.awayScore !== null;
+    const pointsEarned = hasResult && pred
+      ? calcPoints(
+          { home: pred.home, away: pred.away },
+          { home: match.homeScore!, away: match.awayScore! },
+          defaultRules
+        )
+      : null;
     return {
       matchId: match.id,
       leagueId: id,
@@ -111,6 +122,9 @@ export default async function LeaguePredictionsPage({
       existingHome: pred?.home ?? null,
       existingAway: pred?.away ?? null,
       isLocked: now >= match.scheduledAt,
+      actualHome: hasResult ? match.homeScore! : null,
+      actualAway: hasResult ? match.awayScore! : null,
+      pointsEarned,
     };
   });
 
