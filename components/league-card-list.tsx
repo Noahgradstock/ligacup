@@ -14,14 +14,6 @@ type LeagueCard = {
   isOwner: boolean;
 };
 
-function GearIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  );
-}
 
 function DeleteModal({ league, onClose }: { league: LeagueCard; onClose: () => void }) {
   const [input, setInput] = useState("");
@@ -107,25 +99,15 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
           <div key={card.id} className="relative flex items-center gap-4 px-5 py-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors">
             <Link href={`/league/${card.id}`} className="absolute inset-0 rounded-lg" aria-label={card.name} />
 
-            {/* Gear (owner) or rank badge (non-owner) */}
-            {card.isOwner ? (
-              <button
-                onClick={(e) => { e.preventDefault(); setDeletingLeague(card); }}
-                className="relative z-10 shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
-                aria-label="Inställningar"
-              >
-                <GearIcon />
-              </button>
-            ) : (
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
-                : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
-                : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
-                : "bg-secondary text-muted-foreground"
-              }`}>
-                {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
-              </div>
-            )}
+            {/* Rank badge */}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+              card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
+              : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
+              : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
+              : "bg-secondary text-muted-foreground"
+            }`}>
+              {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
+            </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -136,9 +118,12 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
               </p>
             </div>
 
-            {/* Points */}
-            <div className="text-right shrink-0">
+            {/* Points + arrow */}
+            <div className="text-right shrink-0 flex items-center gap-2">
               <p className="text-lg font-bold tabular-nums">{card.totalPoints}p</p>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
             </div>
           </div>
         ))}
