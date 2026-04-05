@@ -107,15 +107,25 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
           <div key={card.id} className="relative flex items-center gap-4 px-5 py-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors">
             <Link href={`/league/${card.id}`} className="absolute inset-0 rounded-lg" aria-label={card.name} />
 
-            {/* Rank badge */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-              card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
-              : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
-              : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
-              : "bg-secondary text-muted-foreground"
-            }`}>
-              {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
-            </div>
+            {/* Gear (owner) or rank badge (non-owner) */}
+            {card.isOwner ? (
+              <button
+                onClick={(e) => { e.preventDefault(); setDeletingLeague(card); }}
+                className="relative z-10 shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                aria-label="Inställningar"
+              >
+                <GearIcon />
+              </button>
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
+                : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
+                : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
+                : "bg-secondary text-muted-foreground"
+              }`}>
+                {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -127,20 +137,9 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
             </div>
 
             {/* Points */}
-            <div className="text-right shrink-0 mr-2">
+            <div className="text-right shrink-0">
               <p className="text-lg font-bold tabular-nums">{card.totalPoints}p</p>
             </div>
-
-            {/* Gear — only for owner */}
-            {card.isOwner && (
-              <button
-                onClick={(e) => { e.preventDefault(); setDeletingLeague(card); }}
-                className="relative z-10 shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                aria-label="Inställningar"
-              >
-                <GearIcon />
-              </button>
-            )}
           </div>
         ))}
       </div>
