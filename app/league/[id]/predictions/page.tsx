@@ -11,11 +11,13 @@ import {
   leagues,
   leagueMembers,
 } from "@/lib/db/schema";
+import Link from "next/link";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { PredictionsView } from "@/components/predictions-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
+import { Button } from "@/components/ui/button";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -130,7 +132,15 @@ export default async function LeaguePredictionsPage({
 
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav backHref={`/league/${id}`} backLabel={league.name} />
+      <AppNav
+        backHref={`/league/${id}`}
+        backLabel={league.name}
+        rightSlot={
+          <Link href={`/league/${id}/bracket`}>
+            <Button variant="outline" size="sm">🏆 Slutspel</Button>
+          </Link>
+        }
+      />
 
       <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
         <div>

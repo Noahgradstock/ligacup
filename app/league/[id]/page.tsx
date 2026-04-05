@@ -98,6 +98,9 @@ export default async function LeaguePage({
           <Link href={`/league/${id}/chat`} className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
             Chatt
           </Link>
+          <Link href={`/league/${id}/bracket`} className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
+            Slutspel
+          </Link>
         </div>
       </div>
 

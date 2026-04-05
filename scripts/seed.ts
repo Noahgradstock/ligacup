@@ -196,9 +196,12 @@ async function main() {
     H: ["tyskland", "sverige", "iran", "tunisien"],
   };
 
-  let allRounds = existingRounds;
-  if (existingRounds.length === 0) {
-    allRounds = await db
+  const existingGroupRounds = existingRounds.filter((r) => r.roundType === "GROUP");
+  const existingKnockoutRounds = existingRounds.filter((r) => r.roundType !== "GROUP");
+
+  let groupRounds = existingGroupRounds;
+  if (existingGroupRounds.length === 0) {
+    groupRounds = await db
       .insert(tournamentRounds)
       .values(
         GROUPS.map((g, i) => ({
@@ -212,11 +215,37 @@ async function main() {
       .returning();
   }
   const roundByGroup = Object.fromEntries(
-    allRounds.map((r) => [r.name.replace("Grupp ", ""), r])
+    groupRounds.map((r) => [r.name.replace("Grupp ", ""), r])
   );
-  console.log(`✅ Rounds: ${allRounds.length} (${existingRounds.length > 0 ? "already existed" : "inserted"})`);
+  console.log(`✅ Group rounds: ${groupRounds.length} (${existingGroupRounds.length > 0 ? "already existed" : "inserted"})`);
 
-  // 5. Matches
+  // Knockout rounds
+  const knockoutRoundDefs = [
+    { name: "Åttondelsfinaler", roundType: "ROUND_OF_16", sequenceOrder: 9, deadline: new Date("2026-06-27T20:59:00Z") },
+    { name: "Kvartsfinaler", roundType: "QF", sequenceOrder: 10, deadline: new Date("2026-07-04T20:59:00Z") },
+    { name: "Semifinaler", roundType: "SF", sequenceOrder: 11, deadline: new Date("2026-07-08T20:59:00Z") },
+    { name: "Final", roundType: "FINAL", sequenceOrder: 12, deadline: new Date("2026-07-18T20:59:00Z") },
+  ];
+
+  let knockoutRounds = existingKnockoutRounds;
+  if (existingKnockoutRounds.length === 0) {
+    knockoutRounds = await db
+      .insert(tournamentRounds)
+      .values(
+        knockoutRoundDefs.map((r) => ({
+          tournamentId: tournament.id,
+          name: r.name,
+          roundType: r.roundType,
+          sequenceOrder: r.sequenceOrder,
+          predictionDeadline: r.deadline,
+        }))
+      )
+      .returning();
+  }
+  const roundByKnockoutName = Object.fromEntries(knockoutRounds.map((r) => [r.name, r]));
+  console.log(`✅ Knockout rounds: ${knockoutRounds.length} (${existingKnockoutRounds.length > 0 ? "already existed" : "inserted"})`);
+
+  // 5. Group stage matches
   const baseDate = new Date("2026-06-12T15:00:00Z");
   let matchNumber = 1;
   const matchRows = [];
@@ -241,16 +270,74 @@ async function main() {
   }
 
   const existingMatches = await db
-    .select({ id: matches.id })
+    .select({ id: matches.id, roundId: matches.roundId })
     .from(matches)
     .where(eq(matches.tournamentId, tournament.id));
 
-  if (existingMatches.length === 0) {
+  const existingGroupMatchIds = new Set(
+    existingMatches
+      .filter((m) => groupRounds.some((r) => r.id === m.roundId))
+      .map((m) => m.id)
+  );
+  const existingKnockoutMatchIds = new Set(
+    existingMatches
+      .filter((m) => knockoutRounds.some((r) => r.id === m.roundId))
+      .map((m) => m.id)
+  );
+
+  if (existingGroupMatchIds.size === 0) {
     await db.insert(matches).values(matchRows);
-    console.log(`✅ Matches: ${matchRows.length} group stage matches inserted`);
+    console.log(`✅ Group matches: ${matchRows.length} inserted`);
   } else {
-    console.log(`✅ Matches: ${existingMatches.length} already exist, skipped`);
+    console.log(`✅ Group matches: ${existingGroupMatchIds.size} already exist, skipped`);
   }
+
+  // 6. Knockout matches (TBD teams, slot labels stored in venue JSON)
+  if (existingKnockoutMatchIds.size === 0 && knockoutRounds.length > 0) {
+    const r16 = roundByKnockoutName["Åttondelsfinaler"];
+    const qf = roundByKnockoutName["Kvartsfinaler"];
+    const sf = roundByKnockoutName["Semifinaler"];
+    const final = roundByKnockoutName["Final"];
+
+    const knockoutMatchRows = [
+      // Round of 16 — standard bracket slots
+      { roundId: r16.id, matchNumber: 49, scheduledAt: new Date("2026-06-28T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1A", awaySlot: "2B" }) },
+      { roundId: r16.id, matchNumber: 50, scheduledAt: new Date("2026-06-28T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1C", awaySlot: "2D" }) },
+      { roundId: r16.id, matchNumber: 51, scheduledAt: new Date("2026-06-29T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1E", awaySlot: "2F" }) },
+      { roundId: r16.id, matchNumber: 52, scheduledAt: new Date("2026-06-29T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1G", awaySlot: "2H" }) },
+      { roundId: r16.id, matchNumber: 53, scheduledAt: new Date("2026-07-01T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1B", awaySlot: "2A" }) },
+      { roundId: r16.id, matchNumber: 54, scheduledAt: new Date("2026-07-01T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1D", awaySlot: "2C" }) },
+      { roundId: r16.id, matchNumber: 55, scheduledAt: new Date("2026-07-02T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1F", awaySlot: "2E" }) },
+      { roundId: r16.id, matchNumber: 56, scheduledAt: new Date("2026-07-02T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1H", awaySlot: "2G" }) },
+      // Quarter-finals
+      { roundId: qf.id, matchNumber: 57, scheduledAt: new Date("2026-07-05T15:00:00Z"), venue: JSON.stringify({ homeSlot: "VM49", awaySlot: "VM50" }) },
+      { roundId: qf.id, matchNumber: 58, scheduledAt: new Date("2026-07-05T19:00:00Z"), venue: JSON.stringify({ homeSlot: "VM51", awaySlot: "VM52" }) },
+      { roundId: qf.id, matchNumber: 59, scheduledAt: new Date("2026-07-06T15:00:00Z"), venue: JSON.stringify({ homeSlot: "VM53", awaySlot: "VM54" }) },
+      { roundId: qf.id, matchNumber: 60, scheduledAt: new Date("2026-07-06T19:00:00Z"), venue: JSON.stringify({ homeSlot: "VM55", awaySlot: "VM56" }) },
+      // Semi-finals
+      { roundId: sf.id, matchNumber: 61, scheduledAt: new Date("2026-07-09T19:00:00Z"), venue: JSON.stringify({ homeSlot: "VK57", awaySlot: "VK58" }) },
+      { roundId: sf.id, matchNumber: 62, scheduledAt: new Date("2026-07-10T19:00:00Z"), venue: JSON.stringify({ homeSlot: "VK59", awaySlot: "VK60" }) },
+      // Final
+      { roundId: final.id, matchNumber: 63, scheduledAt: new Date("2026-07-19T18:00:00Z"), venue: JSON.stringify({ homeSlot: "VS61", awaySlot: "VS62" }) },
+    ];
+
+    await db.insert(matches).values(
+      knockoutMatchRows.map((m) => ({
+        tournamentId: tournament.id,
+        roundId: m.roundId,
+        matchNumber: m.matchNumber,
+        scheduledAt: m.scheduledAt,
+        status: "scheduled" as const,
+        venue: m.venue,
+        homeTeamId: null,
+        awayTeamId: null,
+      }))
+    );
+    console.log(`✅ Knockout matches: ${knockoutMatchRows.length} inserted`);
+  } else {
+    console.log(`✅ Knockout matches: ${existingKnockoutMatchIds.size} already exist, skipped`);
+  }
+
   console.log("\n🎉 Seed complete!");
 }
 
