@@ -80,7 +80,7 @@ services:
         cd /migrate &&
         npm ci --frozen-lockfile &&
         npx drizzle-kit push &&
-        npx tsx scripts/seed.ts &&
+        npx tsx scripts/seed.ts --reset &&
         echo '✅ Migration and seed complete.'
       "
 

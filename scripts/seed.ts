@@ -8,6 +8,7 @@
 import "dotenv/config";
 import { db } from "../lib/db";
 import { tournaments, tournamentRounds, teams, matches, predictionRules } from "../lib/db/schema";
+import { eq } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Tournament
@@ -132,7 +133,22 @@ function groupMatches(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log("🌱 Seeding World Cup 2026 data...");
+  const reset = process.argv.includes("--reset");
+  console.log(`🌱 Seeding World Cup 2026 data...${reset ? " (RESET MODE)" : ""}`);
+
+  // 0. Reset — wipe matches and rounds for a clean re-seed
+  if (reset) {
+    const [existing] = await db
+      .select()
+      .from(tournaments)
+      .where(eq(tournaments.slug, "vm-2026"))
+      .limit(1);
+    if (existing) {
+      await db.delete(matches).where(eq(matches.tournamentId, existing.id));
+      await db.delete(tournamentRounds).where(eq(tournamentRounds.tournamentId, existing.id));
+      console.log("🗑️  Cleared existing matches and rounds");
+    }
+  }
 
   // 1. Tournament
   const [tournament] = await db
@@ -163,7 +179,12 @@ async function main() {
   const teamBySlug = Object.fromEntries(insertedTeams.map((t) => [t.slug, t]));
   console.log(`✅ Teams: ${insertedTeams.length}`);
 
-  // 4. Rounds (one per group)
+  // 4. Rounds (one per group) — skip if already seeded for this tournament
+  const existingRounds = await db
+    .select()
+    .from(tournamentRounds)
+    .where(eq(tournamentRounds.tournamentId, tournament.id));
+
   const groupTeamSlugs: Record<string, [string, string, string, string]> = {
     A: ["usa", "kanada", "mexico", "panama"],
     B: ["argentina", "australien", "marocko", "irak"],
@@ -175,23 +196,25 @@ async function main() {
     H: ["tyskland", "sverige", "iran", "tunisien"],
   };
 
-  const insertedRounds = await db
-    .insert(tournamentRounds)
-    .values(
-      GROUPS.map((g, i) => ({
-        tournamentId: tournament.id,
-        name: `Grupp ${g}`,
-        roundType: "GROUP",
-        sequenceOrder: i + 1,
-        predictionDeadline: new Date("2026-06-11T17:59:00Z"), // before kickoff
-      }))
-    )
-    .onConflictDoNothing()
-    .returning();
+  let allRounds = existingRounds;
+  if (existingRounds.length === 0) {
+    allRounds = await db
+      .insert(tournamentRounds)
+      .values(
+        GROUPS.map((g, i) => ({
+          tournamentId: tournament.id,
+          name: `Grupp ${g}`,
+          roundType: "GROUP",
+          sequenceOrder: i + 1,
+          predictionDeadline: new Date("2026-06-11T17:59:00Z"),
+        }))
+      )
+      .returning();
+  }
   const roundByGroup = Object.fromEntries(
-    insertedRounds.map((r, i) => [GROUPS[i], r])
+    allRounds.map((r) => [r.name.replace("Grupp ", ""), r])
   );
-  console.log(`✅ Rounds: ${insertedRounds.length}`);
+  console.log(`✅ Rounds: ${allRounds.length} (${existingRounds.length > 0 ? "already existed" : "inserted"})`);
 
   // 5. Matches
   const baseDate = new Date("2026-06-12T15:00:00Z");
@@ -217,8 +240,17 @@ async function main() {
     }
   }
 
-  await db.insert(matches).values(matchRows).onConflictDoNothing();
-  console.log(`✅ Matches: ${matchRows.length} group stage matches`);
+  const existingMatches = await db
+    .select({ id: matches.id })
+    .from(matches)
+    .where(eq(matches.tournamentId, tournament.id));
+
+  if (existingMatches.length === 0) {
+    await db.insert(matches).values(matchRows);
+    console.log(`✅ Matches: ${matchRows.length} group stage matches inserted`);
+  } else {
+    console.log(`✅ Matches: ${existingMatches.length} already exist, skipped`);
+  }
   console.log("\n🎉 Seed complete!");
 }
 

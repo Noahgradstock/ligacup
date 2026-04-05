@@ -2,9 +2,9 @@ import { eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import { matches, teams, tournamentRounds, tournaments, predictions } from "@/lib/db/schema";
-import { MatchCard } from "@/components/match-card";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
+import { PredictionsView } from "@/components/predictions-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 
 function toFlag(code: string | null) {
@@ -17,7 +17,6 @@ function toFlag(code: string | null) {
 export default async function PredictionsPage() {
   const dbUser = await syncCurrentUser();
 
-  // Fetch all group stage matches for vm-2026
   const homeTeam = alias(teams, "home_team");
   const awayTeam = alias(teams, "away_team");
 
@@ -36,84 +35,65 @@ export default async function PredictionsPage() {
     .where(eq(tournaments.slug, "vm-2026"))
     .orderBy(matches.scheduledAt);
 
-  // Fetch existing predictions for this user
   const predMap = new Map<string, { home: number; away: number }>();
   if (dbUser && rows.length > 0) {
     const matchIds = rows.map((r) => r.match.id);
     const preds = await db
       .select()
       .from(predictions)
-      .where(
-        inArray(predictions.matchId, matchIds)
-      )
+      .where(inArray(predictions.matchId, matchIds))
       .then((p) => p.filter((x) => x.userId === dbUser.id));
-
     for (const p of preds) {
       predMap.set(p.matchId, { home: p.homeScorePred, away: p.awayScorePred });
     }
   }
 
-  // Group matches by date (YYYY-MM-DD in local time)
   const now = new Date();
-  const byDate = new Map<string, typeof rows>();
-  for (const row of rows) {
-    const key = row.match.scheduledAt.toISOString().slice(0, 10);
-    if (!byDate.has(key)) byDate.set(key, []);
-    byDate.get(key)!.push(row);
-  }
+
+  // Extract sorted unique group names
+  const groups = [...new Set(
+    rows
+      .map((r) => r.match.groupName ?? "")
+      .filter(Boolean)
+  )].sort();
+
+  const matchData = rows.map(({ match, homeTeam: ht, awayTeam: at }) => {
+    const pred = predMap.get(match.id) ?? null;
+    return {
+      matchId: match.id,
+      homeTeam: ht.name,
+      homeFlag: toFlag(ht.countryCode),
+      awayTeam: at.name,
+      awayFlag: toFlag(at.countryCode),
+      scheduledAt: match.scheduledAt.toISOString(),
+      groupName: match.groupName ?? "",
+      existingHome: pred?.home ?? null,
+      existingAway: pred?.away ?? null,
+      isLocked: now >= match.scheduledAt,
+    };
+  });
 
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
-      <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
+      <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tippa matcherna</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Tips låses när matchen börjar. 3p för exakt resultat, 1p för rätt vinnare/oavgjort.
+            3p för exakt resultat · 1p för rätt vinnare/oavgjort
           </p>
         </div>
 
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">
-            Inga matcher hittades. Kör <code>npm run db:seed</code> på servern.
+          <p className="text-muted-foreground text-sm">
+            Inga matcher hittades. Kör seed-scriptet på servern.
           </p>
         ) : (
-          Array.from(byDate.entries()).map(([dateKey, dayRows]) => {
-            const label = new Date(dateKey).toLocaleDateString("sv-SE", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            });
-            return (
-              <section key={dateKey} className="flex flex-col gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  {label}
-                </h2>
-                {dayRows.map(({ match, homeTeam: ht, awayTeam: at }) => {
-                  const pred = predMap.get(match.id) ?? null;
-                  const isLocked = now >= match.scheduledAt;
-                  return (
-                    <MatchCard
-                      key={match.id}
-                      matchId={match.id}
-                      homeTeam={ht.name}
-                      homeFlag={toFlag(ht.countryCode)}
-                      awayTeam={at.name}
-                      awayFlag={toFlag(at.countryCode)}
-                      scheduledAt={match.scheduledAt.toISOString()}
-                      groupName={match.groupName ?? ""}
-                      existingHome={pred?.home ?? null}
-                      existingAway={pred?.away ?? null}
-                      isLocked={isLocked}
-                    />
-                  );
-                })}
-              </section>
-            );
-          })
+          <PredictionsView matches={matchData} groups={groups} />
         )}
       </div>
+
       <BottomNav />
     </main>
   );
