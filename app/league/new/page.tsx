@@ -15,24 +15,78 @@ const MAX_MEMBER_OPTIONS = [
   { label: "Obegränsat", value: 200 },
 ];
 
+type Feature = {
+  key: string;
+  emoji: string;
+  title: string;
+  desc: string;
+  alwaysOn?: boolean;
+};
+
+const FEATURES: Feature[] = [
+  {
+    key: "match_scores",
+    emoji: "⚽",
+    title: "Matchresultat",
+    desc: "Tippa exakt resultat på alla matcher i turneringen.",
+    alwaysOn: true,
+  },
+  {
+    key: "tournament_winner",
+    emoji: "🏆",
+    title: "Turneringsvinnare",
+    desc: "Vem vinner hela VM? Poäng delas ut om din tippning stämmer.",
+  },
+  {
+    key: "top_scorer",
+    emoji: "👟",
+    title: "Skyttekung",
+    desc: "Vilken spelare gör flest mål i turneringen?",
+  },
+  {
+    key: "group_winners",
+    emoji: "📋",
+    title: "Gruppvinnare",
+    desc: "Tippa vilka lag som vinner respektive grupp i gruppspelet.",
+  },
+  {
+    key: "finalist",
+    emoji: "🥈",
+    title: "Finalist",
+    desc: "Vilket lag når finalen? Poäng oavsett om de vinner eller förlorar.",
+  },
+  {
+    key: "most_red_cards",
+    emoji: "🟥",
+    title: "Flest röda kort",
+    desc: "Vilket lag får flest röda kort under turneringen?",
+  },
+];
+
 export default function NewLeaguePage() {
   const router = useRouter();
 
-  // Basic info
   const [name, setName] = useState("");
-
-  // Settings
   const [privacy, setPrivacy] = useState<Privacy>("private");
   const [maxMembers, setMaxMembers] = useState(20);
-
-  // Scoring rules
+  const [enabledFeatures, setEnabledFeatures] = useState<Set<string>>(
+    new Set(["match_scores", "tournament_winner", "top_scorer"])
+  );
   const [exactScore, setExactScore] = useState(3);
   const [correctWinner, setCorrectWinner] = useState(1);
   const [correctDraw, setCorrectDraw] = useState(1);
 
-  // Submit state
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  function toggleFeature(key: string) {
+    setEnabledFeatures((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +100,7 @@ export default function NewLeaguePage() {
         name,
         isPublic: privacy === "public",
         maxMembers,
+        features: Array.from(enabledFeatures),
         scoring: { exactScore, correctWinner, correctDraw },
       }),
     });
@@ -76,13 +131,13 @@ export default function NewLeaguePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Skapa tipslag</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Konfigurera laget, bjud in vänner och tävla om äran.
+            Välj vad ni ska tippa, hur länge och vilka regler som gäller.
           </p>
         </div>
 
-        {/* ── Section 1: Name ── */}
+        {/* ── 1: Name ── */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Lagets namn
           </h2>
           <input
@@ -99,9 +154,63 @@ export default function NewLeaguePage() {
           <p className="text-xs text-muted-foreground">{name.length}/50 tecken</p>
         </section>
 
-        {/* ── Section 2: Privacy ── */}
+        {/* ── 2: What to bet on ── */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Vad ska ni tippa?
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Välj vilka kategorier som ingår i tävlingen.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            {FEATURES.map((f) => {
+              const on = enabledFeatures.has(f.key);
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => !f.alwaysOn && toggleFeature(f.key)}
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg border text-left transition-colors ${
+                    on
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card text-muted-foreground"
+                  } ${f.alwaysOn ? "cursor-default opacity-80" : "hover:bg-secondary/50 cursor-pointer"}`}
+                >
+                  <span className="text-xl shrink-0">{f.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${on ? "text-foreground" : ""}`}>
+                      {f.title}
+                      {f.alwaysOn && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          (alltid på)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                  {/* Toggle indicator */}
+                  <div
+                    className={`w-10 h-6 rounded-full shrink-0 transition-colors relative ${
+                      on ? "bg-primary" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${
+                        on ? "left-5" : "left-1"
+                      }`}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── 3: Privacy ── */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Synlighet
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -123,16 +232,16 @@ export default function NewLeaguePage() {
                 <span className="text-xs leading-relaxed">
                   {p === "private"
                     ? "Bara de med inbjudningslänken kan gå med."
-                    : "Vem som helst kan hitta och gå med i laget."}
+                    : "Vem som helst kan hitta och gå med."}
                 </span>
               </button>
             ))}
           </div>
         </section>
 
-        {/* ── Section 3: Max members ── */}
+        {/* ── 4: Max members ── */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Max antal deltagare
           </h2>
           <div className="flex gap-2 flex-wrap">
@@ -153,28 +262,27 @@ export default function NewLeaguePage() {
           </div>
         </section>
 
-        {/* ── Section 4: Scoring rules ── */}
+        {/* ── 5: Scoring rules ── */}
         <section className="flex flex-col gap-4">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Poängregler
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Poängregler — matchresultat
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Hur många poäng ges per tippad match?
+              Hur många poäng ges per korrekt gissning?
             </p>
           </div>
-
           <div className="flex flex-col gap-3">
             {[
               {
                 label: "Exakt resultat",
-                desc: "t.ex. 2–1 och matchen slutar 2–1",
+                desc: "t.ex. tippade 2–1, matchen slutar 2–1",
                 value: exactScore,
                 set: setExactScore,
               },
               {
                 label: "Rätt vinnare",
-                desc: "rätt lag vinner, fel poängskillnad",
+                desc: "rätt lag vinner men fel poängskillnad",
                 value: correctWinner,
                 set: setCorrectWinner,
               },
@@ -217,7 +325,6 @@ export default function NewLeaguePage() {
           </div>
         </section>
 
-        {/* ── Submit ── */}
         {status === "error" && (
           <p className="text-sm text-destructive -mt-4">{errorMsg}</p>
         )}

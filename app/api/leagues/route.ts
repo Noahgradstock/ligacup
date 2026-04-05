@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     name: string;
     isPublic?: boolean;
     maxMembers?: number;
+    features?: string[];
     scoring?: { exactScore: number; correctWinner: number; correctDraw: number };
   };
   try {
@@ -40,6 +41,8 @@ export async function POST(request: Request) {
 
   const maxMembers = Math.min(200, Math.max(2, body.maxMembers ?? 20));
   const isPublic = body.isPublic ?? false;
+  const validFeatureKeys = ["match_scores", "tournament_winner", "top_scorer", "group_winners", "finalist", "most_red_cards"];
+  const features = ["match_scores", ...((body.features ?? []).filter((f) => validFeatureKeys.includes(f) && f !== "match_scores"))];
   const scoring = {
     exactScore: Math.min(10, Math.max(0, body.scoring?.exactScore ?? 3)),
     correctWinner: Math.min(10, Math.max(0, body.scoring?.correctWinner ?? 1)),
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
       inviteCode,
       maxMembers,
       isPublic,
-      configJson: { scoring },
+      configJson: { features, scoring },
     })
     .returning();
 
