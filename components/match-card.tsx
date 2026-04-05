@@ -52,6 +52,8 @@ export function MatchCard({
 }: Props) {
   const [home, setHome] = useState(existingHome?.toString() ?? "");
   const [away, setAway] = useState(existingAway?.toString() ?? "");
+  const [savedHome, setSavedHome] = useState(existingHome?.toString() ?? "");
+  const [savedAway, setSavedAway] = useState(existingAway?.toString() ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     existingHome !== null ? "saved" : "idle"
   );
@@ -59,10 +61,8 @@ export function MatchCard({
   const [others, setOthers] = useState<MemberPrediction[] | null>(null);
   const [loadingOthers, setLoadingOthers] = useState(false);
 
-  const hasPrediction = existingHome !== null;
-  const dirty =
-    home !== (existingHome?.toString() ?? "") ||
-    away !== (existingAway?.toString() ?? "");
+  const hasPrediction = existingHome !== null || savedHome !== "";
+  const dirty = home !== savedHome || away !== savedAway;
 
   async function save() {
     const h = parseInt(home, 10);
@@ -75,7 +75,13 @@ export function MatchCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
       });
-      setStatus(res.ok ? "saved" : "error");
+      if (res.ok) {
+        setSavedHome(home);
+        setSavedAway(away);
+        setStatus("saved");
+      } else {
+        setStatus("error");
+      }
     } catch {
       setStatus("error");
     }
@@ -105,6 +111,7 @@ export function MatchCard({
   const time = new Date(scheduledAt).toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Stockholm",
   });
 
   const savedAndClean = status === "saved" && !dirty;
