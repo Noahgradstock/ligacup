@@ -82,7 +82,7 @@ export default async function LeaguePage({
         backHref="/dashboard"
         backLabel="Dashboard"
         rightSlot={
-          <Link href="/predictions">
+          <Link href={`/league/${id}/predictions`}>
             <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
           </Link>
         }

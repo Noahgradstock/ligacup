@@ -154,15 +154,17 @@ export const predictions = pgTable(
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
     userId: uuid("user_id").notNull().references(() => users.id),
     matchId: uuid("match_id").notNull().references(() => matches.id),
+    leagueId: uuid("league_id").references(() => leagues.id, { onDelete: "cascade" }),
     homeScorePred: integer("home_score_pred").notNull(),
     awayScorePred: integer("away_score_pred").notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("predictions_user_match_idx").on(t.userId, t.matchId),
+    uniqueIndex("predictions_user_match_league_idx").on(t.userId, t.matchId, t.leagueId),
     index("predictions_user_idx").on(t.userId),
     index("predictions_match_idx").on(t.matchId),
+    index("predictions_league_idx").on(t.leagueId),
   ]
 );
 

@@ -5,6 +5,7 @@ import { MatchCard } from "@/components/match-card";
 
 type MatchRow = {
   matchId: string;
+  leagueId: string;
   homeTeam: string;
   homeFlag: string;
   awayTeam: string;
@@ -19,9 +20,10 @@ type MatchRow = {
 type Props = {
   matches: MatchRow[];
   groups: string[]; // e.g. ["A","B","C","D","E","F","G","H"]
+  leagueId: string;
 };
 
-export function PredictionsView({ matches, groups }: Props) {
+export function PredictionsView({ matches, groups, leagueId }: Props) {
   const [activeGroup, setActiveGroup] = useState<string>(groups[0] ?? "");
 
   const filtered = activeGroup === "Alla"
@@ -74,14 +76,14 @@ export function PredictionsView({ matches, groups }: Props) {
                   {label}
                 </p>
                 {dayMatches.map((m) => (
-                  <MatchCard key={m.matchId} {...m} />
+                  <MatchCard key={m.matchId} {...m} leagueId={leagueId} />
                 ))}
               </div>
             );
           })
         ) : (
           filtered.map((m) => (
-            <MatchCard key={m.matchId} {...m} />
+            <MatchCard key={m.matchId} {...m} leagueId={leagueId} />
           ))
         )}
 

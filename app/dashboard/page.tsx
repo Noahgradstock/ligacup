@@ -5,9 +5,6 @@ import {
   leagues,
   leagueMembers,
   pointSnapshots,
-  predictions,
-  matches,
-  tournaments,
 } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { AppNav } from "@/components/app-nav";
@@ -78,29 +75,7 @@ export default async function DashboardPage() {
     };
   });
 
-  // 3. Prediction progress
-  const [tournament] = await db
-    .select()
-    .from(tournaments)
-    .where(eq(tournaments.slug, "vm-2026"))
-    .limit(1);
-
-  const [{ value: totalMatches }] = tournament
-    ? await db
-        .select({ value: count() })
-        .from(matches)
-        .where(eq(matches.tournamentId, tournament.id))
-    : [{ value: 0 }];
-
-  const [{ value: predictedCount }] = dbUser
-    ? await db
-        .select({ value: count() })
-        .from(predictions)
-        .where(eq(predictions.userId, dbUser.id))
-    : [{ value: 0 }];
-
   const displayName = dbUser?.displayName ?? dbUser?.email?.split("@")[0] ?? "";
-  const progress = totalMatches > 0 ? Math.round((predictedCount / totalMatches) * 100) : 0;
 
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
@@ -120,38 +95,6 @@ export default async function DashboardPage() {
       </section>
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
-
-        {/* Prediction progress */}
-        {tournament && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Dina tips</h2>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {predictedCount}/{totalMatches} matcher
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Dina tips gäller i alla dina tipslag automatiskt.
-            </p>
-            <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            {predictedCount === totalMatches && totalMatches > 0 ? (
-              <p className="text-xs text-center text-green-600 font-medium">
-                Alla matcher tippade ✓
-              </p>
-            ) : (
-              <Link href="/predictions">
-                <Button size="sm" variant="outline" className="w-full">
-                  {predictedCount === 0 ? "Börja tippa →" : "Fortsätt tippa →"}
-                </Button>
-              </Link>
-            )}
-          </section>
-        )}
 
         {/* Leagues */}
         <section className="flex flex-col gap-4">

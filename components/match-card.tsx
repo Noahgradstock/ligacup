@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Props = {
   matchId: string;
+  leagueId: string;
   homeTeam: string;
   homeFlag: string;
   awayTeam: string;
@@ -17,6 +18,7 @@ type Props = {
 
 export function MatchCard({
   matchId,
+  leagueId,
   homeTeam,
   homeFlag,
   awayTeam,
@@ -47,7 +49,7 @@ export function MatchCard({
       const res = await fetch("/api/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, homeScorePred: h, awayScorePred: a }),
+        body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
       });
       setStatus(res.ok ? "saved" : "error");
     } catch {
