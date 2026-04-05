@@ -138,6 +138,9 @@ export default async function DashboardPage() {
                 {predictedCount}/{totalMatches} matcher
               </span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Dina tips gäller i alla dina tipslag automatiskt.
+            </p>
             <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary transition-all"

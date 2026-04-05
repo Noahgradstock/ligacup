@@ -85,6 +85,10 @@ export default async function PredictionsPage() {
           </p>
         </div>
 
+        <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 text-sm text-primary">
+          Dina tips gäller automatiskt i <strong>alla dina tipslag</strong>. Du behöver bara tippa en gång.
+        </div>
+
         {rows.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             Inga matcher hittades. Kör seed-scriptet på servern.
