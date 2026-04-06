@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import type { Top3Entry } from "@/app/api/leagues/[id]/top3/route";
 
 function toFlag(code: string | null) {
@@ -96,7 +96,15 @@ export function MemberPredictionsSection({
   allTeams,
   groups,
 }: Props) {
-  const [filter, setFilter] = useState<Filter>("nearest");
+  const storageKey = `allas-tips-filter-${leagueId}`;
+  const [filter, setFilter] = useState<Filter>(() => {
+    if (typeof window === "undefined") return "nearest";
+    return (localStorage.getItem(storageKey) as Filter) ?? "nearest";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, filter);
+  }, [filter, storageKey]);
   const [top3, setTop3] = useState<Top3Entry[]>(initialTop3);
   const [editingTop3, setEditingTop3] = useState(false);
   const [first, setFirst] = useState<string>(() => {

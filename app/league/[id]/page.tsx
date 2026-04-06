@@ -163,10 +163,21 @@ export default async function LeaguePage({
     predictions: predsByMatch.get(r.matchId) ?? [],
   }));
 
-  // Distinct sorted groups
-  const groups = [...new Set(
-    lockedMatchRows.map((r) => r.groupName).filter((g): g is string => g !== null)
-  )].sort();
+  // All distinct group names (independent of whether matches are locked yet)
+  const allGroupRows = await db
+    .selectDistinct({ groupName: matches.groupName })
+    .from(matches)
+    .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+    .where(
+      and(
+        eq(matches.tournamentId, league.tournamentId),
+        eq(tournamentRounds.roundType, "GROUP")
+      )
+    );
+  const groups = allGroupRows
+    .map((r) => r.groupName)
+    .filter((g): g is string => g !== null)
+    .sort();
 
   // Top 3 VM predictions for this league
   const t1 = alias(teams, "t1");
