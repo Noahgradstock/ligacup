@@ -66,6 +66,7 @@ export default function NewLeaguePage() {
 
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [attempted, setAttempted] = useState(false);
 
   function toggleFeature(key: string) {
     setEnabledFeatures((prev) => {
@@ -131,15 +132,21 @@ export default function NewLeaguePage() {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setAttempted(false); }}
             placeholder="t.ex. Kansliet VM-tips"
             minLength={2}
             maxLength={50}
             required
             autoFocus
-            className="rounded-lg border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
+            className={`rounded-lg border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring ${
+              attempted && name.trim().length < 2 ? "border-destructive focus:ring-destructive" : "border-border"
+            }`}
           />
-          <p className="text-xs text-muted-foreground">{name.length}/50 tecken</p>
+          {attempted && name.trim().length < 2 ? (
+            <p className="text-xs text-destructive">Ge tiplaget ett namn för att fortsätta.</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{name.length}/50 tecken</p>
+          )}
         </section>
 
         {/* ── 2: What to bet on ── */}
@@ -320,7 +327,8 @@ export default function NewLeaguePage() {
         <Button
           type="submit"
           size="lg"
-          disabled={status === "saving" || name.trim().length < 2}
+          disabled={status === "saving"}
+          onClick={() => { if (name.trim().length < 2) setAttempted(true); }}
           className="w-full text-base"
         >
           {status === "saving" ? "Skapar tipslag..." : "Skapa tipslag →"}
