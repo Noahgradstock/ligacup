@@ -21,6 +21,9 @@ export default function JoinPage() {
         <Link href="/dashboard" className="font-bold text-xl tracking-tight">
           Ligacup<span className="text-primary">.se</span>
         </Link>
+        <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          ← Tillbaka
+        </Link>
       </nav>
 
       <div className="max-w-sm mx-auto w-full px-6 py-16 flex flex-col gap-8">

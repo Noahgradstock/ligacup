@@ -109,8 +109,8 @@ export default function NewLeaguePage() {
         <Link href="/dashboard" className="font-bold text-xl tracking-tight">
           Ligacup<span className="text-primary">.se</span>
         </Link>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          Avbryt
+        <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          ← Tillbaka
         </Link>
       </nav>
 
