@@ -34,14 +34,18 @@ function parseVenueSlots(venue: string | null): { homeSlot: string | null; awayS
 
 function formatSlotLabel(slot: string | null): string {
   if (!slot) return "TBD";
-  if (/^[12][A-H]$/.test(slot)) return `${slot[0]}:a ${slot[1]}`;
+  // Group position: "1A", "2B", "3A/B/C"
+  if (/^[123][A-L]/.test(slot)) {
+    const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
+    return `${pos} ${slot.slice(1)}`;
+  }
   if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
-  if (slot.startsWith("VK")) return `V. kvart ${slot.slice(2)}`;
-  if (slot.startsWith("VS")) return `V. semi ${slot.slice(2)}`;
+  if (slot.startsWith("VK")) return `V. kvartsfinal ${slot.slice(2)}`;
+  if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
   return slot;
 }
 
-const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_16", "QF", "SF", "FINAL"];
+const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL"];
 
 export default async function BracketPage({
   params,

@@ -15,6 +15,8 @@ function toFlag(code: string | null | undefined) {
     .replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
 
+// Note: Scotland and England both use countryCode "GB" (🇬🇧) — distinguished by name.
+
 function parseSlots(venue: string | null): { homeSlot: string; awaySlot: string } {
   if (!venue) return { homeSlot: "?", awaySlot: "?" };
   try {
@@ -25,7 +27,7 @@ function parseSlots(venue: string | null): { homeSlot: string; awaySlot: string 
   }
 }
 
-const ROUND_TYPE_ORDER = ["GROUP", "ROUND_OF_16", "QF", "SF", "FINAL"];
+const ROUND_TYPE_ORDER = ["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL"];
 
 export default async function AdminMatchesPage() {
   const jar = await cookies();

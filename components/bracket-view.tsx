@@ -35,7 +35,8 @@ type Props = {
 };
 
 const ROUND_SHORT: Record<string, string> = {
-  ROUND_OF_16: "Åttondel",
+  ROUND_OF_32: "Omg 32",
+  ROUND_OF_16: "Omg 16",
   QF: "Kvart",
   SF: "Semi",
   FINAL: "Final",
