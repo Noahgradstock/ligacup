@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     maxMembers?: number;
     features?: string[];
     scoring?: { exactScore: number; correctWinner: number; correctDraw: number };
+    bannerUrl?: string | null;
   };
   try {
     body = await request.json();
@@ -85,6 +86,11 @@ export async function POST(request: Request) {
     slug = `${baseSlug}-${i}`;
   }
 
+  // Validate bannerUrl: must be a data URL or null (no external URLs)
+  const bannerUrl = typeof body.bannerUrl === "string" && body.bannerUrl.startsWith("data:image/")
+    ? body.bannerUrl
+    : null;
+
   const [league] = await db
     .insert(leagues)
     .values({
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
       inviteCode,
       maxMembers,
       isPublic,
+      bannerUrl,
       configJson: { features, scoring },
     })
     .returning();

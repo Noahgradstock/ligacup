@@ -64,9 +64,30 @@ export default function NewLeaguePage() {
   const [correctWinner, setCorrectWinner] = useState(1);
   const [correctDraw, setCorrectDraw] = useState(1);
 
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [attempted, setAttempted] = useState(false);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 400;
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(SIZE / img.width, SIZE / img.height);
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setBannerUrl(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
 
   function toggleFeature(key: string) {
     setEnabledFeatures((prev) => {
@@ -91,6 +112,7 @@ export default function NewLeaguePage() {
         maxMembers,
         features: Array.from(enabledFeatures),
         scoring: { exactScore, correctWinner, correctDraw },
+        bannerUrl,
       }),
     });
 
@@ -147,6 +169,45 @@ export default function NewLeaguePage() {
           ) : (
             <p className="text-xs text-muted-foreground">{name.length}/50 tecken</p>
           )}
+
+          {/* Banner image — optional */}
+          <div className="flex flex-col gap-2 pt-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Lagbild <span className="font-normal normal-case tracking-normal">(valfri)</span>
+            </p>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageChange}
+                className="sr-only"
+              />
+              {bannerUrl ? (
+                <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={bannerUrl} alt="Lagbild" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">Byt bild</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-24 rounded-lg border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-1.5 hover:bg-secondary/50 transition-colors">
+                  <span className="text-2xl">📷</span>
+                  <span className="text-xs text-muted-foreground">Ta bild eller välj från kamerarulle</span>
+                </div>
+              )}
+            </label>
+            {bannerUrl && (
+              <button
+                type="button"
+                onClick={() => setBannerUrl(null)}
+                className="text-xs text-muted-foreground hover:text-destructive transition-colors self-start"
+              >
+                Ta bort bild
+              </button>
+            )}
+          </div>
         </section>
 
         {/* ── 2: What to bet on ── */}

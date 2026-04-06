@@ -66,6 +66,7 @@ export default async function DashboardPage() {
     return {
       id: league.id,
       name: league.name,
+      bannerUrl: league.bannerUrl ?? null,
       inviteCode: league.inviteCode,
       totalPoints: snap?.totalPoints ?? 0,
       rankInLeague: snap?.rankInLeague ?? null,

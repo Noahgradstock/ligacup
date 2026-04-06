@@ -74,6 +74,16 @@ export default async function LeaguePage({
 
   return (
     <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
+      {/* Banner */}
+      {league.bannerUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={league.bannerUrl}
+          alt={league.name}
+          className="w-full h-40 object-cover rounded-xl border border-border"
+        />
+      )}
+
       {/* Meta */}
       <div className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">

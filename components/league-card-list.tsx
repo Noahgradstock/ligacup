@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 type LeagueCard = {
   id: string;
   name: string;
+  bannerUrl: string | null;
   totalPoints: number;
   rankInLeague: number | null;
   matchesPlayed: number;
@@ -99,15 +100,20 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
           <div key={card.id} className="relative flex items-center gap-4 px-5 py-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors">
             <Link href={`/league/${card.id}`} className="absolute inset-0 rounded-lg" aria-label={card.name} />
 
-            {/* Rank badge */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-              card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
-              : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
-              : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
-              : "bg-secondary text-muted-foreground"
-            }`}>
-              {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
-            </div>
+            {/* League avatar or rank badge */}
+            {card.bannerUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={card.bannerUrl} alt={card.name} className="w-10 h-10 rounded-full object-cover shrink-0 border border-border" />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
+                : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
+                : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
+                : "bg-secondary text-muted-foreground"
+              }`}>
+                {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
