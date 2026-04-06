@@ -191,24 +191,48 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
 
   const tabs = [...groups, "Alla"];
 
+  // Per-group completion: all 6 matches tipped (in predMap or existingHome set)
+  const isGroupComplete = (group: string) => {
+    const groupMatches = matches.filter((m) => m.groupName === group);
+    return groupMatches.length > 0 && groupMatches.every(
+      (m) => predMap.has(m.matchId) || m.existingHome !== null
+    );
+  };
+
+  // Navigation within groups (not "Alla")
+  const activeGroupIndex = groups.indexOf(activeGroup);
+  const isOnGroup = activeGroupIndex !== -1;
+  const prevGroup = isOnGroup && activeGroupIndex > 0 ? groups[activeGroupIndex - 1] : null;
+  const nextGroup = isOnGroup && activeGroupIndex < groups.length - 1 ? groups[activeGroupIndex + 1] : null;
+  const isLastGroup = isOnGroup && activeGroupIndex === groups.length - 1;
+
   return (
     <div className="flex flex-col gap-0">
       {/* Tab bar */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border -mx-4 px-4">
         <div className="flex gap-1 overflow-x-auto scrollbar-none py-2">
-          {tabs.map((g) => (
-            <button
-              key={g}
-              onClick={() => setActiveGroup(g)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeGroup === g
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              {g === "Alla" ? "Alla" : `Grupp ${g}`}
-            </button>
-          ))}
+          {tabs.map((g) => {
+            const complete = g !== "Alla" && isGroupComplete(g);
+            const active = activeGroup === g;
+            return (
+              <button
+                key={g}
+                onClick={() => setActiveGroup(g)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  active
+                    ? complete
+                      ? "bg-green-600 text-white"
+                      : "bg-primary text-primary-foreground"
+                    : complete
+                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                {g === "Alla" ? "Alla" : `Grupp ${g}`}
+                {complete && !active && <span className="ml-1 text-xs">✓</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -239,6 +263,36 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
             ))}
             {filtered.length > 0 && (
               <GroupStandings groupMatches={filtered} predMap={predMap} />
+            )}
+            {/* Group navigation */}
+            {isOnGroup && (
+              <div className="flex items-center justify-between gap-3 pt-2 pb-4">
+                {prevGroup ? (
+                  <button
+                    onClick={() => { setActiveGroup(prevGroup); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
+                  >
+                    ← Grupp {prevGroup}
+                  </button>
+                ) : (
+                  <div />
+                )}
+                {isLastGroup ? (
+                  <a
+                    href={`/league/${leagueId}/bracket`}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    Slutspel →
+                  </a>
+                ) : nextGroup ? (
+                  <button
+                    onClick={() => { setActiveGroup(nextGroup); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
+                  >
+                    Grupp {nextGroup} →
+                  </button>
+                ) : null}
+              </div>
             )}
           </>
         )}
