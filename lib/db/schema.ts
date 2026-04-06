@@ -189,6 +189,25 @@ export const pointSnapshots = pgTable(
   ]
 );
 
+export const tournamentTop3Predictions = pgTable(
+  "tournament_top3_predictions",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    leagueId: uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+    tournamentId: uuid("tournament_id").notNull().references(() => tournaments.id),
+    firstTeamId: uuid("first_team_id").references(() => teams.id),
+    secondTeamId: uuid("second_team_id").references(() => teams.id),
+    thirdTeamId: uuid("third_team_id").references(() => teams.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tournament_top3_user_league_idx").on(t.userId, t.leagueId),
+    index("tournament_top3_league_idx").on(t.leagueId),
+  ]
+);
+
 // ---------------------------------------------------------------------------
 // Social
 // ---------------------------------------------------------------------------
@@ -253,3 +272,4 @@ export type PointSnapshot = typeof pointSnapshots.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Punishment = typeof punishments.$inferSelect;
+export type TournamentTop3Prediction = typeof tournamentTop3Predictions.$inferSelect;
