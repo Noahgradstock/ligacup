@@ -1,14 +1,10 @@
 import { eq, and } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { leagues, leagueMembers, users, pointSnapshots } from "@/lib/db/schema";
 import { redis, keys } from "@/lib/redis";
-import { Button } from "@/components/ui/button";
 import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
-import { AppNav } from "@/components/app-nav";
-import { BottomNav } from "@/components/bottom-nav";
 import { DeleteLeagueButton } from "./delete-league-button";
 import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
@@ -77,100 +73,71 @@ export default async function LeaguePage({
   }
 
   return (
-    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav
-        backHref="/dashboard"
-        backLabel="Dashboard"
-        rightSlot={
-          <Link href={`/league/${id}/predictions`}>
-            <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
-          </Link>
-        }
-      />
-
-      {/* Tab bar */}
-      <div className="border-b border-border px-6 pt-3 flex flex-col gap-2">
-        <p className="text-sm font-semibold">{league.name}</p>
-        <div className="flex gap-4 text-sm">
-          <span className="pb-2 border-b-2 border-primary text-foreground font-medium">
-            Tabell
-          </span>
-          <Link href={`/league/${id}/chat`} className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
-            Chatt
-          </Link>
-          <Link href={`/league/${id}/bracket`} className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
-            Slutspel
-          </Link>
-        </div>
+    <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
+      {/* Meta */}
+      <div className="flex flex-col gap-1">
+        <p className="text-sm text-muted-foreground">
+          {members.length} deltagare · VM 2026
+        </p>
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
-        {/* Header */}
-        <div className="flex flex-col gap-1">
-          <p className="text-sm text-muted-foreground">
-            {members.length} {members.length === 1 ? "deltagare" : "deltagare"} · VM 2026
-          </p>
-        </div>
-
-        {/* Invite */}
-        {isMember && (
-          <section className="rounded-lg border border-border bg-secondary/50 px-4 py-4 flex flex-col gap-3">
-            <p className="text-sm font-medium">Bjud in vänner</p>
-            <div className="flex gap-2">
-              <input
-                readOnly
-                value={inviteUrl}
-                className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none"
-              />
-              <CopyButton text={inviteUrl} />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Kod: <span className="font-semibold font-mono">{league.inviteCode}</span>
-            </p>
-          </section>
-        )}
-
-        {/* Live leaderboard */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Tabellen</h2>
-          <Leaderboard
-            leagueId={id}
-            currentUserId={dbUser?.id ?? null}
-            initial={initialLeaderboard}
-          />
-        </section>
-
-        {/* Members */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Deltagare</h2>
-          <div className="flex flex-col gap-1">
-            {members.map((m) => (
-              <div
-                key={m.userId}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-card"
-              >
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase">
-                  {displayLabel(m).slice(0, 1)}
-                </div>
-                <span className="text-sm">
-                  {displayLabel(m)}
-                  {dbUser && m.userId === dbUser.id && (
-                    <span className="ml-2 text-xs text-muted-foreground">(du)</span>
-                  )}
-                </span>
-              </div>
-            ))}
+      {/* Invite */}
+      {isMember && (
+        <section className="rounded-lg border border-border bg-secondary/50 px-4 py-4 flex flex-col gap-3">
+          <p className="text-sm font-medium">Bjud in vänner</p>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={inviteUrl}
+              className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none"
+            />
+            <CopyButton text={inviteUrl} />
           </div>
+          <p className="text-xs text-muted-foreground">
+            Kod: <span className="font-semibold font-mono">{league.inviteCode}</span>
+          </p>
         </section>
+      )}
 
-        {/* Owner settings */}
-        {dbUser && league.ownerId === dbUser.id && (
-          <section className="flex flex-col gap-2 pt-4 border-t border-border">
-            <DeleteLeagueButton leagueId={id} leagueName={league.name} />
-          </section>
-        )}
-      </div>
-      <BottomNav />
-    </main>
+      {/* Live leaderboard */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold">Tabellen</h2>
+        <Leaderboard
+          leagueId={id}
+          currentUserId={dbUser?.id ?? null}
+          initial={initialLeaderboard}
+        />
+      </section>
+
+      {/* Members */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold">Deltagare</h2>
+        <div className="flex flex-col gap-1">
+          {members.map((m) => (
+            <div
+              key={m.userId}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-card"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase">
+                {displayLabel(m).slice(0, 1)}
+              </div>
+              <span className="text-sm">
+                {displayLabel(m)}
+                {dbUser && m.userId === dbUser.id && (
+                  <span className="ml-2 text-xs text-muted-foreground">(du)</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Owner settings */}
+      {dbUser && league.ownerId === dbUser.id && (
+        <section className="flex flex-col gap-2 pt-4 border-t border-border">
+          <DeleteLeagueButton leagueId={id} leagueName={league.name} />
+        </section>
+      )}
+    </div>
   );
 }

@@ -84,7 +84,10 @@ export default async function DashboardPage() {
       {/* Quick actions */}
       <section className="border-b border-border px-6 py-3 flex gap-2 flex-wrap">
         <Link href="/predictions">
-          <Button variant="outline" size="sm">⚽ Tippa matcher</Button>
+          <Button variant="outline" size="sm">⚽ Grupptips</Button>
+        </Link>
+        <Link href="/bracket">
+          <Button variant="outline" size="sm">🏆 Slutspel</Button>
         </Link>
         <Link href="/league/new">
           <Button variant="outline" size="sm">+ Skapa tipslag</Button>

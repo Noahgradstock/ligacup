@@ -11,13 +11,9 @@ import {
   leagues,
   leagueMembers,
 } from "@/lib/db/schema";
-import Link from "next/link";
-import { AppNav } from "@/components/app-nav";
-import { BottomNav } from "@/components/bottom-nav";
 import { PredictionsView } from "@/components/predictions-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
-import { Button } from "@/components/ui/button";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -39,7 +35,6 @@ export default async function LeaguePredictionsPage({
 
   if (!league) notFound();
 
-  // Verify user is a member
   if (dbUser) {
     const [membership] = await db
       .select()
@@ -58,6 +53,7 @@ export default async function LeaguePredictionsPage({
   const homeTeam = alias(teams, "home_team");
   const awayTeam = alias(teams, "away_team");
 
+  // Only group stage matches on this page
   const rows = await db
     .select({
       match: matches,
@@ -70,10 +66,14 @@ export default async function LeaguePredictionsPage({
     .innerJoin(tournaments, eq(matches.tournamentId, tournaments.id))
     .innerJoin(homeTeam, eq(matches.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(matches.awayTeamId, awayTeam.id))
-    .where(eq(tournaments.id, league.tournamentId))
+    .where(
+      and(
+        eq(tournaments.id, league.tournamentId),
+        eq(tournamentRounds.roundType, "GROUP")
+      )
+    )
     .orderBy(matches.scheduledAt);
 
-  // Load predictions scoped to this league
   const predMap = new Map<string, { home: number; away: number }>();
   if (dbUser && rows.length > 0) {
     const matchIds = rows.map((r) => r.match.id);
@@ -93,13 +93,7 @@ export default async function LeaguePredictionsPage({
   }
 
   const now = new Date();
-
-  const groups = [...new Set(
-    rows
-      .map((r) => r.match.groupName ?? "")
-      .filter(Boolean)
-  )].sort();
-
+  const groups = [...new Set(rows.map((r) => r.match.groupName ?? "").filter(Boolean))].sort();
   const defaultRules = { pointsExactScore: 3, pointsCorrectWinner: 1, pointsCorrectDraw: 1 };
 
   const matchData = rows.map(({ match, homeTeam: ht, awayTeam: at }) => {
@@ -131,35 +125,19 @@ export default async function LeaguePredictionsPage({
   });
 
   return (
-    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav
-        backHref={`/league/${id}`}
-        backLabel={league.name}
-        rightSlot={
-          <Link href={`/league/${id}/bracket`}>
-            <Button variant="outline" size="sm">🏆 Slutspel</Button>
-          </Link>
-        }
-      />
-
-      <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tippa matcherna</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {league.name} · 3p för exakt resultat · 1p för rätt vinnare/oavgjort
-          </p>
-        </div>
-
-        {rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Inga matcher hittades.
-          </p>
-        ) : (
-          <PredictionsView matches={matchData} groups={groups} leagueId={id} />
-        )}
+    <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Tippa matcherna</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          3p för exakt resultat · 1p för rätt vinnare/oavgjort
+        </p>
       </div>
 
-      <BottomNav />
-    </main>
+      {rows.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Inga matcher hittades.</p>
+      ) : (
+        <PredictionsView matches={matchData} groups={groups} leagueId={id} />
+      )}
+    </div>
   );
 }

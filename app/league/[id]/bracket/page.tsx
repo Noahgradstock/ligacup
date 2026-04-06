@@ -1,6 +1,7 @@
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import {
   matches,
@@ -10,11 +11,7 @@ import {
   leagues,
   leagueMembers,
 } from "@/lib/db/schema";
-import Link from "next/link";
-import { AppNav } from "@/components/app-nav";
-import { BottomNav } from "@/components/bottom-nav";
 import { BracketView } from "@/components/bracket-view";
-import { Button } from "@/components/ui/button";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
 
@@ -37,15 +34,9 @@ function parseVenueSlots(venue: string | null): { homeSlot: string | null; awayS
 
 function formatSlotLabel(slot: string | null): string {
   if (!slot) return "TBD";
-  // "1A" → "1:a A", "2B" → "2:a B"
-  if (/^[12][A-H]$/.test(slot)) {
-    return `${slot[0]}:a ${slot[1]}`;
-  }
-  // "VM49" → "Vinnare M49" (Vinnare Match)
+  if (/^[12][A-H]$/.test(slot)) return `${slot[0]}:a ${slot[1]}`;
   if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
-  // "VK57" → "Vinnare K57" (Vinnare Kvartsfinal)
   if (slot.startsWith("VK")) return `V. kvart ${slot.slice(2)}`;
-  // "VS61" → "Vinnare S61" (Vinnare Semifinal)
   if (slot.startsWith("VS")) return `V. semi ${slot.slice(2)}`;
   return slot;
 }
@@ -80,10 +71,71 @@ export default async function BracketPage({
     if (!membership) notFound();
   }
 
-  const homeTeam = alias(teams, "home_team");
-  const awayTeam = alias(teams, "away_team");
+  // Gate: user must have predicted all group stage matches before accessing bracket
+  if (dbUser) {
+    const groupMatchIds = await db
+      .select({ id: matches.id })
+      .from(matches)
+      .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+      .where(
+        and(
+          eq(tournamentRounds.tournamentId, league.tournamentId),
+          eq(tournamentRounds.roundType, "GROUP")
+        )
+      );
 
-  // Query all knockout rounds for this tournament
+    const totalGroupMatches = groupMatchIds.length;
+
+    const [{ value: tippedCount }] = await db
+      .select({ value: count() })
+      .from(predictions)
+      .where(
+        and(
+          inArray(predictions.matchId, groupMatchIds.map((m) => m.id)),
+          eq(predictions.leagueId, id),
+          eq(predictions.userId, dbUser.id)
+        )
+      );
+
+    if (tippedCount < totalGroupMatches) {
+      const remaining = totalGroupMatches - tippedCount;
+      return (
+        <div className="max-w-2xl mx-auto w-full px-4 py-16 flex flex-col items-center gap-6 text-center">
+          <div className="text-5xl">🔒</div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-bold">Slutspelet är låst</h2>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Du måste tippa alla gruppspelets matcher innan du kan tippa slutspelet.
+              {remaining === 1
+                ? " Du har 1 match kvar att tippa."
+                : ` Du har ${remaining} matcher kvar att tippa.`}
+            </p>
+          </div>
+          <Link
+            href={`/league/${id}/predictions`}
+            className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Tippa gruppspelets matcher →
+          </Link>
+          {/* Progress bar */}
+          <div className="w-full max-w-xs">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>{tippedCount} tippade</span>
+              <span>{totalGroupMatches} totalt</span>
+            </div>
+            <div className="h-2 rounded-full bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${(tippedCount / totalGroupMatches) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Load knockout rounds and matches
   const knockoutRounds = await db
     .select()
     .from(tournamentRounds)
@@ -97,27 +149,15 @@ export default async function BracketPage({
 
   if (knockoutRounds.length === 0) {
     return (
-      <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-        <AppNav
-          backHref={`/league/${id}`}
-          backLabel={league.name}
-          rightSlot={
-            <Link href={`/league/${id}/predictions`}>
-              <Button variant="outline" size="sm">⚽ Grupptips</Button>
-            </Link>
-          }
-        />
-        <div className="max-w-2xl mx-auto w-full px-4 pt-10">
-          <p className="text-muted-foreground text-sm text-center">
-            Slutspelet har inte seedad ännu.
-          </p>
-        </div>
-        <BottomNav />
-      </main>
+      <div className="max-w-2xl mx-auto w-full px-4 pt-10 text-center">
+        <p className="text-muted-foreground text-sm">Slutspelet har inte seedad ännu.</p>
+      </div>
     );
   }
 
   const roundIds = knockoutRounds.map((r) => r.id);
+  const homeTeam = alias(teams, "home_team");
+  const awayTeam = alias(teams, "away_team");
 
   const rows = await db
     .select({
@@ -135,7 +175,6 @@ export default async function BracketPage({
     .where(inArray(matches.roundId, roundIds))
     .orderBy(tournamentRounds.sequenceOrder, matches.matchNumber);
 
-  // Load user's predictions for bracket matches
   const predMap = new Map<string, { home: number; away: number }>();
   if (dbUser && rows.length > 0) {
     const matchIds = rows.map((r) => r.match.id);
@@ -196,29 +235,14 @@ export default async function BracketPage({
   }));
 
   return (
-    <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav
-        backHref={`/league/${id}`}
-        backLabel={league.name}
-        rightSlot={
-          <Link href={`/league/${id}/predictions`}>
-            <Button variant="outline" size="sm">⚽ Grupptips</Button>
-          </Link>
-        }
-      />
-
-      <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Slutspelet</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {league.name} · Tippa vem som vinner varje match
-          </p>
-        </div>
-
-        <BracketView matches={matchData} rounds={rounds} leagueId={id} />
+    <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Slutspelet</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Tippa vem som vinner varje match
+        </p>
       </div>
-
-      <BottomNav />
-    </main>
+      <BracketView matches={matchData} rounds={rounds} leagueId={id} />
+    </div>
   );
 }
