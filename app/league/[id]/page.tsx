@@ -81,24 +81,6 @@ export default async function LeaguePage({
         </p>
       </div>
 
-      {/* Invite */}
-      {isMember && (
-        <section className="rounded-lg border border-border bg-secondary/50 px-4 py-4 flex flex-col gap-3">
-          <p className="text-sm font-medium">Bjud in vänner</p>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={inviteUrl}
-              className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none"
-            />
-            <CopyButton text={inviteUrl} />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Kod: <span className="font-semibold font-mono">{league.inviteCode}</span>
-          </p>
-        </section>
-      )}
-
       {/* Live leaderboard */}
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Tabellen</h2>
@@ -131,6 +113,24 @@ export default async function LeaguePage({
           ))}
         </div>
       </section>
+
+      {/* Invite */}
+      {isMember && (
+        <section className="rounded-lg border border-border bg-secondary/50 px-4 py-4 flex flex-col gap-3">
+          <p className="text-sm font-medium">Bjud in vänner</p>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={inviteUrl}
+              className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none"
+            />
+            <CopyButton text={inviteUrl} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Kod: <span className="font-semibold font-mono">{league.inviteCode}</span>
+          </p>
+        </section>
+      )}
 
       {/* Owner settings */}
       {dbUser && league.ownerId === dbUser.id && (
