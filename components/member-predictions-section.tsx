@@ -162,11 +162,25 @@ export function MemberPredictionsSection({
   const myTop3 = top3.find((t) => t.userId === currentUserId);
   const hasMyTop3 = myTop3?.firstTeamId != null;
 
-  const filterChips: { key: Filter; label: string }[] = [
-    { key: "nearest", label: "Närmast" },
-    ...groups.map((g) => ({ key: g as Filter, label: g })),
+  const topChips: { key: Filter; label: string }[] = [
     { key: "top3", label: "VM Top 3" },
+    { key: "nearest", label: "Närmast" },
   ];
+
+  function Chip({ chipKey, label }: { chipKey: Filter; label: string }) {
+    return (
+      <button
+        onClick={() => setFilter(chipKey)}
+        className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors shrink-0 ${
+          filter === chipKey
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-card text-muted-foreground border-border hover:bg-secondary/50"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-3">
@@ -175,20 +189,25 @@ export function MemberPredictionsSection({
       </div>
 
       {/* Filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {filterChips.map((chip) => (
-          <button
-            key={chip.key}
-            onClick={() => setFilter(chip.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors shrink-0 ${
-              filter === chip.key
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:bg-secondary/50"
-            }`}
-          >
-            {chip.label}
-          </button>
-        ))}
+      <div className="flex flex-col gap-2">
+        {/* Top-level chips */}
+        <div className="flex gap-2">
+          {topChips.map((c) => (
+            <Chip key={c.key} chipKey={c.key} label={c.label} />
+          ))}
+        </div>
+
+        {/* Group chips with label */}
+        {groups.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
+              Grupper
+            </span>
+            {groups.map((g) => (
+              <Chip key={g} chipKey={g} label={g} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
