@@ -10,13 +10,7 @@ const TABS = [
   { id: "chatt", label: "Chatt", href: (id: string) => `/league/${id}/chat` },
 ];
 
-export function LeagueSubNav({
-  leagueId,
-  leagueName,
-}: {
-  leagueId: string;
-  leagueName: string;
-}) {
+export function LeagueSubNav({ leagueId }: { leagueId: string }) {
   const pathname = usePathname();
 
   function activeTab() {
@@ -30,7 +24,6 @@ export function LeagueSubNav({
 
   return (
     <div className="border-b border-border px-4 flex flex-col">
-      <p className="text-sm font-semibold px-2 pt-3 pb-1">{leagueName}</p>
       <div className="flex gap-0">
         {TABS.map((tab) => (
           <Link

@@ -25,8 +25,8 @@ export default async function LeagueLayout({
 
   return (
     <div className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav backHref="/dashboard" backLabel="Dashboard" />
-      <LeagueSubNav leagueId={id} leagueName={league.name} />
+      <AppNav backHref="/dashboard" backLabel="Dashboard" centerTitle={league.name} />
+      <LeagueSubNav leagueId={id} />
       <div className="flex-1 flex flex-col">{children}</div>
       <BottomNav />
     </div>

@@ -9,11 +9,13 @@ type Props = {
   /** Show a back link instead of the logo link going to dashboard */
   backHref?: string;
   backLabel?: string;
+  /** Centered bold title */
+  centerTitle?: string;
   /** Right-side content override */
   rightSlot?: React.ReactNode;
 };
 
-export async function AppNav({ backHref, backLabel, rightSlot }: Props = {}) {
+export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Props = {}) {
   const { userId: clerkId } = await auth();
 
   let unreadCount = 0;
@@ -30,10 +32,10 @@ export async function AppNav({ backHref, backLabel, rightSlot }: Props = {}) {
   }
 
   return (
-    <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
+    <nav className="relative flex items-center justify-between px-6 py-4 border-b border-border">
       <Link
         href={backHref ?? "/dashboard"}
-        className="font-bold text-xl tracking-tight"
+        className="font-bold text-xl tracking-tight shrink-0"
       >
         {backLabel ? (
           <span className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -44,7 +46,13 @@ export async function AppNav({ backHref, backLabel, rightSlot }: Props = {}) {
         )}
       </Link>
 
-      <div className="flex items-center gap-2">
+      {centerTitle && (
+        <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold truncate max-w-[40%] text-center pointer-events-none">
+          {centerTitle}
+        </span>
+      )}
+
+      <div className="flex items-center gap-2 shrink-0">
         {rightSlot}
         {clerkId && <NotificationBell initialCount={unreadCount} />}
       </div>
