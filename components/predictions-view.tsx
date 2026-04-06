@@ -178,8 +178,10 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     },
   });
 
-  const filtered = activeGroup === "Alla"
+  const filtered = activeGroup === "Alla matcher"
     ? [...matches].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
+    : activeGroup === "Alla grupper"
+    ? []
     : matches.filter((m) => m.groupName === activeGroup);
 
   const byDate = new Map<string, MatchRow[]>();
@@ -189,7 +191,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     byDate.get(key)!.push(m);
   }
 
-  const tabs = [...groups, "Alla"];
+  const tabs = [...groups, "Alla matcher", "Alla grupper"];
 
   // Per-group completion: all 6 matches tipped (in predMap or existingHome set)
   const isGroupComplete = (group: string) => {
@@ -199,7 +201,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     );
   };
 
-  // Navigation within groups (not "Alla")
+  // Navigation within groups only
   const activeGroupIndex = groups.indexOf(activeGroup);
   const isOnGroup = activeGroupIndex !== -1;
   const prevGroup = isOnGroup && activeGroupIndex > 0 ? groups[activeGroupIndex - 1] : null;
@@ -212,7 +214,8 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border -mx-4 px-4">
         <div className="flex gap-1 overflow-x-auto scrollbar-none py-2">
           {tabs.map((g) => {
-            const complete = g !== "Alla" && isGroupComplete(g);
+            const isSpecial = g === "Alla matcher" || g === "Alla grupper";
+            const complete = !isSpecial && isGroupComplete(g);
             const active = activeGroup === g;
             return (
               <button
@@ -228,7 +231,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                {g === "Alla" ? "Alla" : `Grupp ${g}`}
+                {isSpecial ? g : `Grupp ${g}`}
                 {complete && !active && <span className="ml-1 text-xs">✓</span>}
               </button>
             );
@@ -238,7 +241,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
 
       {/* Matches */}
       <div className="flex flex-col gap-3 pt-4">
-        {activeGroup === "Alla" ? (
+        {activeGroup === "Alla matcher" ? (
           Array.from(byDate.entries()).map(([dateKey, dayMatches]) => {
             const label = new Date(dateKey + "T12:00:00").toLocaleDateString("sv-SE", {
               weekday: "long",
@@ -253,6 +256,18 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                 {dayMatches.map((m) => (
                   <MatchCard key={m.matchId} {...m} leagueId={leagueId} onSave={handleSave} />
                 ))}
+              </div>
+            );
+          })
+        ) : activeGroup === "Alla grupper" ? (
+          groups.map((g) => {
+            const groupMatches = matches.filter((m) => m.groupName === g);
+            return (
+              <div key={g} className="flex flex-col gap-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pt-4 first:pt-0">
+                  Grupp {g}
+                </p>
+                <GroupStandings groupMatches={groupMatches} predMap={predMap} />
               </div>
             );
           })
@@ -295,12 +310,6 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
               </div>
             )}
           </>
-        )}
-
-        {filtered.length === 0 && (
-          <p className="text-muted-foreground text-sm text-center py-8">
-            Inga matcher i Grupp {activeGroup}.
-          </p>
         )}
       </div>
     </div>
