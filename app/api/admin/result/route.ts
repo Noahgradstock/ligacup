@@ -134,6 +134,7 @@ export async function POST(request: Request) {
         totalPoints: pointSnapshots.totalPoints,
         displayName: users.displayName,
         email: users.email,
+        avatarUrl: users.avatarUrl,
       })
       .from(pointSnapshots)
       .innerJoin(users, eq(pointSnapshots.userId, users.id))
@@ -189,7 +190,7 @@ export async function POST(request: Request) {
     // Sync Redis sorted set
     const zaddArgs: (string | number)[] = [];
     for (const s of sorted) {
-      zaddArgs.push(s.totalPoints, JSON.stringify({ userId: s.userId, displayName: s.displayName, email: s.email }));
+      zaddArgs.push(s.totalPoints, JSON.stringify({ userId: s.userId, displayName: s.displayName, email: s.email, avatarUrl: s.avatarUrl ?? null }));
     }
     if (zaddArgs.length > 0) {
       await redis.zadd(keys.leaderboard(leagueId), ...zaddArgs);

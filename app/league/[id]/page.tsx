@@ -28,6 +28,7 @@ export default async function LeaguePage({
       joinedAt: leagueMembers.joinedAt,
       displayName: users.displayName,
       email: users.email,
+      avatarUrl: users.avatarUrl,
     })
     .from(leagueMembers)
     .innerJoin(users, eq(leagueMembers.userId, users.id))
@@ -55,6 +56,7 @@ export default async function LeaguePage({
         totalPoints: pointSnapshots.totalPoints,
         displayName: users.displayName,
         email: users.email,
+        avatarUrl: users.avatarUrl,
       })
       .from(pointSnapshots)
       .innerJoin(users, eq(pointSnapshots.userId, users.id))
@@ -62,7 +64,7 @@ export default async function LeaguePage({
 
     initialLeaderboard = [...rows]
       .sort((a, b) => b.totalPoints - a.totalPoints)
-      .map((r, i) => ({ ...r, rank: i + 1 }));
+      .map((r, i) => ({ ...r, avatarUrl: r.avatarUrl ?? null, rank: i + 1 }));
   }
 
   const isMember = dbUser ? members.some((m) => m.userId === dbUser.id) : false;
@@ -100,9 +102,14 @@ export default async function LeaguePage({
               key={m.userId}
               className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-card"
             >
-              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase">
-                {displayLabel(m).slice(0, 1)}
-              </div>
+              {m.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.avatarUrl} alt={displayLabel(m)} className="w-7 h-7 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase shrink-0">
+                  {displayLabel(m).slice(0, 1)}
+                </div>
+              )}
               <span className="text-sm">
                 {displayLabel(m)}
                 {dbUser && m.userId === dbUser.id && (

@@ -54,9 +54,17 @@ export function Leaderboard({ leagueId, currentUserId, initial }: Props) {
               isMe ? "border-primary/30 bg-primary/5" : "border-border bg-card"
             }`}
           >
-            <span className="w-6 text-center text-sm font-bold text-muted-foreground">
+            <span className="w-5 text-center text-sm font-bold text-muted-foreground shrink-0">
               {i + 1}
             </span>
+            {entry.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={entry.avatarUrl} alt={label} className="w-7 h-7 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground uppercase shrink-0">
+                {label.slice(0, 1)}
+              </div>
+            )}
             <span className="flex-1 text-sm font-medium">
               {label}
               {isMe && <span className="ml-2 text-xs text-primary">(du)</span>}

@@ -7,6 +7,7 @@ export type LeaderboardEntry = {
   userId: string;
   displayName: string | null;
   email: string;
+  avatarUrl: string | null;
   totalPoints: number;
   rank: number;
 };
@@ -47,6 +48,7 @@ export async function GET(
       rankInLeague: pointSnapshots.rankInLeague,
       displayName: users.displayName,
       email: users.email,
+      avatarUrl: users.avatarUrl,
     })
     .from(pointSnapshots)
     .innerJoin(users, eq(pointSnapshots.userId, users.id))
@@ -58,6 +60,7 @@ export async function GET(
     userId: r.userId,
     displayName: r.displayName,
     email: r.email,
+    avatarUrl: r.avatarUrl ?? null,
     totalPoints: r.totalPoints,
     rank: i + 1,
   }));
