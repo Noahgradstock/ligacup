@@ -179,7 +179,6 @@ export default function NewLeaguePage() {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handleImageChange}
                 className="sr-only"
               />
