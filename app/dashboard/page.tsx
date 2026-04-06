@@ -82,18 +82,12 @@ export default async function DashboardPage() {
       <AppNav rightSlot={<span className="text-sm text-muted-foreground truncate max-w-[120px]">{displayName}</span>} />
 
       {/* Quick actions */}
-      <section className="border-b border-border px-6 py-3 flex gap-2 flex-wrap">
-        <Link href="/predictions">
-          <Button variant="outline" size="sm">⚽ Grupptips</Button>
-        </Link>
-        <Link href="/bracket">
-          <Button variant="outline" size="sm">🏆 Slutspel</Button>
-        </Link>
+      <section className="border-b border-border px-6 py-4 grid grid-cols-2 gap-3">
         <Link href="/league/new">
-          <Button variant="outline" size="sm">+ Skapa tipslag</Button>
+          <Button variant="outline" className="w-full h-12 text-base font-semibold">+ Skapa tipslag</Button>
         </Link>
         <Link href="/join">
-          <Button variant="outline" size="sm">Gå med via länk</Button>
+          <Button variant="outline" className="w-full h-12 text-base font-semibold">Gå med i tipslag</Button>
         </Link>
       </section>
 
