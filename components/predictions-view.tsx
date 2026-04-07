@@ -193,12 +193,15 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
 
   const tabs = [...groups, "Alla matcher", "Alla grupper"];
 
-  // Per-group completion: all 6 matches tipped (in predMap or existingHome set)
-  const isGroupComplete = (group: string) => {
+  const groupProgress = (group: string) => {
     const groupMatches = matches.filter((m) => m.groupName === group);
-    return groupMatches.length > 0 && groupMatches.every(
-      (m) => predMap.has(m.matchId) || m.existingHome !== null
-    );
+    const tipped = groupMatches.filter((m) => predMap.has(m.matchId)).length;
+    return { tipped, total: groupMatches.length };
+  };
+
+  const isGroupComplete = (group: string) => {
+    const { tipped, total } = groupProgress(group);
+    return total > 0 && tipped === total;
   };
 
   // Navigation within groups only
@@ -217,6 +220,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
             const isSpecial = g === "Alla matcher" || g === "Alla grupper";
             const complete = !isSpecial && isGroupComplete(g);
             const active = activeGroup === g;
+            const progress = !isSpecial ? groupProgress(g) : null;
             return (
               <button
                 key={g}
@@ -232,7 +236,10 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                 }`}
               >
                 {isSpecial ? g : `Grupp ${g}`}
-                {complete && !active && <span className="ml-1 text-xs">✓</span>}
+                {!isSpecial && progress && !complete && progress.tipped > 0 && (
+                  <span className="ml-1 text-xs opacity-70">{progress.tipped}/{progress.total}</span>
+                )}
+                {complete && <span className="ml-1 text-xs">✓</span>}
               </button>
             );
           })}
