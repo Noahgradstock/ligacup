@@ -294,11 +294,13 @@ export default async function BracketPage({
         )
       : null;
 
-    // Resolve team name: DB team > slot→team from user's predictions > generic slot label
+    // Resolve team: DB team (confirmed) > slot from user's group predictions > generic label
     const resolvedHome = homeTeamName
-      ?? (homeSlot ? slotTeamMap.get(homeSlot) : null);
+      ? { name: homeTeamName, flag: toFlag(homeTeamCode) }
+      : (homeSlot ? (slotTeamMap.get(homeSlot) ?? null) : null);
     const resolvedAway = awayTeamName
-      ?? (awaySlot ? slotTeamMap.get(awaySlot) : null);
+      ? { name: awayTeamName, flag: toFlag(awayTeamCode) }
+      : (awaySlot ? (slotTeamMap.get(awaySlot) ?? null) : null);
 
     return {
       matchId: match.id,
@@ -307,9 +309,9 @@ export default async function BracketPage({
       roundName: round.name,
       matchNumber: match.matchNumber ?? 0,
       homeTeam: resolvedHome?.name ?? formatSlotLabel(homeSlot),
-      homeFlag: homeTeamCode ? toFlag(homeTeamCode) : (resolvedHome?.flag ?? "🏳"),
+      homeFlag: resolvedHome?.flag ?? "🏳",
       awayTeam: resolvedAway?.name ?? formatSlotLabel(awaySlot),
-      awayFlag: awayTeamCode ? toFlag(awayTeamCode) : (resolvedAway?.flag ?? "🏳"),
+      awayFlag: resolvedAway?.flag ?? "🏳",
       scheduledAt: match.scheduledAt.toISOString(),
       existingHome: pred?.home ?? null,
       existingAway: pred?.away ?? null,
