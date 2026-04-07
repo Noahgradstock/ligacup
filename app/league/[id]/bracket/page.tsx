@@ -14,6 +14,7 @@ import {
 import { BracketView } from "@/components/bracket-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
+import { computeGroupStandings } from "@/lib/predictor/standings";
 
 function toFlag(code: string | null | undefined) {
   if (!code) return "🏳";
@@ -34,7 +35,6 @@ function parseVenueSlots(venue: string | null): { homeSlot: string | null; awayS
 
 function formatSlotLabel(slot: string | null): string {
   if (!slot) return "TBD";
-  // Group position: "1A", "2B", "3A/B/C"
   if (/^[123][A-L]/.test(slot)) {
     const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
     return `${pos} ${slot.slice(1)}`;
@@ -121,7 +121,6 @@ export default async function BracketPage({
           >
             Tippa gruppspelets matcher →
           </Link>
-          {/* Progress bar */}
           <div className="w-full max-w-xs">
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>{tippedCount} tippade</span>
@@ -139,7 +138,87 @@ export default async function BracketPage({
     }
   }
 
-  // Load knockout rounds and matches
+  // ── Build slot → team name map from user's group predictions ──────────────
+  // Maps e.g. "1A" → { name: "Brasilien", flag: "🇧🇷" }
+  const slotTeamMap = new Map<string, { name: string; flag: string }>();
+
+  if (dbUser) {
+    const homeTeamAlias = alias(teams, "home_team");
+    const awayTeamAlias = alias(teams, "away_team");
+
+    const groupRows = await db
+      .select({
+        matchId: matches.id,
+        groupName: matches.groupName,
+        homeTeamName: homeTeamAlias.name,
+        homeTeamCode: homeTeamAlias.countryCode,
+        awayTeamName: awayTeamAlias.name,
+        awayTeamCode: awayTeamAlias.countryCode,
+        actualHome: matches.homeScore,
+        actualAway: matches.awayScore,
+        isResultConfirmed: matches.isResultConfirmed,
+      })
+      .from(matches)
+      .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+      .innerJoin(homeTeamAlias, eq(matches.homeTeamId, homeTeamAlias.id))
+      .innerJoin(awayTeamAlias, eq(matches.awayTeamId, awayTeamAlias.id))
+      .where(
+        and(
+          eq(matches.tournamentId, league.tournamentId),
+          eq(tournamentRounds.roundType, "GROUP")
+        )
+      );
+
+    // Load user's group predictions
+    const groupMatchIds = groupRows.map((r) => r.matchId);
+    const groupPreds = groupMatchIds.length > 0
+      ? await db
+          .select()
+          .from(predictions)
+          .where(
+            and(
+              inArray(predictions.matchId, groupMatchIds),
+              eq(predictions.leagueId, id),
+              eq(predictions.userId, dbUser.id)
+            )
+          )
+      : [];
+
+    const predMap = new Map(
+      groupPreds.map((p) => [p.matchId, { home: p.homeScorePred, away: p.awayScorePred }])
+    );
+
+    // Group match rows by group name
+    const byGroup = new Map<string, typeof groupRows>();
+    for (const r of groupRows) {
+      if (!r.groupName) continue;
+      if (!byGroup.has(r.groupName)) byGroup.set(r.groupName, []);
+      byGroup.get(r.groupName)!.push(r);
+    }
+
+    // Compute standings per group → populate slot map
+    for (const [groupName, gMatches] of byGroup.entries()) {
+      const standings = computeGroupStandings(
+        gMatches.map((m) => ({
+          matchId: m.matchId,
+          homeTeam: m.homeTeamName,
+          homeFlag: toFlag(m.homeTeamCode),
+          awayTeam: m.awayTeamName,
+          awayFlag: toFlag(m.awayTeamCode),
+          actualHome: m.isResultConfirmed ? m.actualHome : null,
+          actualAway: m.isResultConfirmed ? m.actualAway : null,
+        })),
+        predMap
+      );
+
+      if (standings[0]) slotTeamMap.set(`1${groupName}`, standings[0]);
+      if (standings[1]) slotTeamMap.set(`2${groupName}`, standings[1]);
+      if (standings[2]) slotTeamMap.set(`3${groupName}`, standings[2]);
+      if (standings[3]) slotTeamMap.set(`4${groupName}`, standings[3]);
+    }
+  }
+
+  // ── Load knockout rounds and matches ──────────────────────────────────────
   const knockoutRounds = await db
     .select()
     .from(tournamentRounds)
@@ -212,16 +291,22 @@ export default async function BracketPage({
         )
       : null;
 
+    // Resolve team name: DB team > slot→team from user's predictions > generic slot label
+    const resolvedHome = homeTeamName
+      ?? (homeSlot ? slotTeamMap.get(homeSlot) : null);
+    const resolvedAway = awayTeamName
+      ?? (awaySlot ? slotTeamMap.get(awaySlot) : null);
+
     return {
       matchId: match.id,
       leagueId: id,
       roundType: round.roundType,
       roundName: round.name,
       matchNumber: match.matchNumber ?? 0,
-      homeTeam: homeTeamName ?? formatSlotLabel(homeSlot),
-      homeFlag: toFlag(homeTeamCode),
-      awayTeam: awayTeamName ?? formatSlotLabel(awaySlot),
-      awayFlag: toFlag(awayTeamCode),
+      homeTeam: resolvedHome?.name ?? formatSlotLabel(homeSlot),
+      homeFlag: homeTeamCode ? toFlag(homeTeamCode) : (resolvedHome?.flag ?? "🏳"),
+      awayTeam: resolvedAway?.name ?? formatSlotLabel(awaySlot),
+      awayFlag: awayTeamCode ? toFlag(awayTeamCode) : (resolvedAway?.flag ?? "🏳"),
       scheduledAt: match.scheduledAt.toISOString(),
       existingHome: pred?.home ?? null,
       existingAway: pred?.away ?? null,
@@ -229,7 +314,8 @@ export default async function BracketPage({
       actualHome: hasResult ? match.homeScore! : null,
       actualAway: hasResult ? match.awayScore! : null,
       pointsEarned,
-      isTbd: homeTeamName === null || awayTeamName === null,
+      isTbd: (homeTeamName === null && !slotTeamMap.has(homeSlot ?? "")) ||
+             (awayTeamName === null && !slotTeamMap.has(awaySlot ?? "")),
     };
   });
 
@@ -243,7 +329,7 @@ export default async function BracketPage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Slutspelet</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Tippa vem som vinner varje match
+          Tippa vem som vinner varje match — lagen baseras på dina grupptips
         </p>
       </div>
       <BracketView matches={matchData} rounds={rounds} leagueId={id} />

@@ -340,7 +340,23 @@ async function main() {
     knockoutRounds.some((r) => r.id === m.roundId)
   ).length;
 
-  if (existingKnockoutMatchCount === 0 && knockoutRounds.length > 0) {
+  const existingR32Count = existingMatches.filter((m) => {
+    const r32 = knockoutRounds.find((r) => r.roundType === "ROUND_OF_32");
+    return r32 && m.roundId === r32.id;
+  }).length;
+
+  if ((existingKnockoutMatchCount === 0 || existingR32Count < 16) && knockoutRounds.length > 0) {
+    // Delete any stale knockout matches first to avoid duplicates
+    if (existingKnockoutMatchCount > 0 && existingR32Count < 16) {
+      const knockoutMatchIds = existingMatches
+        .filter((m) => knockoutRounds.some((r) => r.id === m.roundId))
+        .map((m) => m.id);
+      if (knockoutMatchIds.length > 0) {
+        await db.delete(predictions).where(inArray(predictions.matchId, knockoutMatchIds));
+        await db.delete(matches).where(inArray(matches.id, knockoutMatchIds));
+        console.log("🗑  Deleted stale knockout matches to rebuild with full 16 R32 matches");
+      }
+    }
     const r32  = roundByKnockout["ROUND_OF_32"];
     const r16  = roundByKnockout["ROUND_OF_16"];
     const qf   = roundByKnockout["QF"];
