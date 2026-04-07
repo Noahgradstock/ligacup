@@ -216,6 +216,9 @@ export default async function BracketPage({
       if (standings[2]) slotTeamMap.set(`3${groupName}`, standings[2]);
       if (standings[3]) slotTeamMap.set(`4${groupName}`, standings[3]);
     }
+
+    // DEBUG — ta bort efter felsökning
+    console.log("[bracket] groupRows:", groupRows.length, "groupPreds:", groupPreds.length, "slotTeamMap keys:", [...slotTeamMap.keys()]);
   }
 
   // ── Load knockout rounds and matches ──────────────────────────────────────

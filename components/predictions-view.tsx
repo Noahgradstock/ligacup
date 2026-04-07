@@ -215,7 +215,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     <div className="flex flex-col gap-0">
       {/* Tab bar */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border -mx-4 px-4">
-        <div className="flex gap-1 overflow-x-auto scrollbar-none py-2">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none py-2 sm:flex-wrap sm:overflow-x-visible">
           {tabs.map((g) => {
             const isSpecial = g === "Alla matcher" || g === "Alla grupper";
             const complete = !isSpecial && isGroupComplete(g);
