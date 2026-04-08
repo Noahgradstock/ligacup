@@ -87,16 +87,20 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
                 onClick={() => setActiveRound(r.roundType)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   activeRound === r.roundType
-                    ? "bg-primary text-primary-foreground"
+                    ? allTipped
+                      ? "bg-green-600 text-white"
+                      : "bg-primary text-primary-foreground"
+                    : allTipped
+                    ? "bg-green-100 text-green-700 hover:bg-green-200"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
                 {r.roundName}
-                {allTipped && activeRound !== r.roundType && (
+                {allTipped && (
                   <span className="text-xs leading-none">✓</span>
                 )}
                 {!allTipped && tipped > 0 && activeRound !== r.roundType && (
-                  <span className="text-xs text-muted-foreground leading-none">{tipped}/{total}</span>
+                  <span className="text-xs leading-none opacity-70">{tipped}/{total}</span>
                 )}
               </button>
             );
