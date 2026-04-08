@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   const maxMembers = Math.min(200, Math.max(2, body.maxMembers ?? 20));
   const isPublic = body.isPublic ?? false;
   const validFeatureKeys = ["match_scores", "tournament_winner", "top_scorer", "most_yellow_cards"];
-  const features = ["match_scores", ...((body.features ?? []).filter((f) => validFeatureKeys.includes(f) && f !== "match_scores"))];
+  const features = (body.features ?? ["match_scores"]).filter((f) => validFeatureKeys.includes(f));
   const scoring = {
     exactScore: Math.min(10, Math.max(0, body.scoring?.exactScore ?? 3)),
     correctWinner: Math.min(10, Math.max(0, body.scoring?.correctWinner ?? 1)),

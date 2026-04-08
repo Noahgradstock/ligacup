@@ -21,7 +21,6 @@ type Feature = {
   emoji: string;
   title: string;
   desc: string;
-  alwaysOn?: boolean;
 };
 
 const FEATURES: Feature[] = [
@@ -30,13 +29,12 @@ const FEATURES: Feature[] = [
     emoji: "⚽",
     title: "Matchresultat",
     desc: "Tippa exakt resultat på alla matcher i turneringen.",
-    alwaysOn: true,
   },
   {
     key: "tournament_winner",
     emoji: "🏆",
-    title: "Turneringsvinnare",
-    desc: "Vem vinner hela VM? Poäng delas ut om din tippning stämmer.",
+    title: "VM Top 3",
+    desc: "Tippa vem som tar guld, silver och brons. Poäng för varje rätt placering.",
   },
   {
     key: "top_scorer",
@@ -227,22 +225,17 @@ export default function NewLeaguePage() {
                 <button
                   key={f.key}
                   type="button"
-                  onClick={() => !f.alwaysOn && toggleFeature(f.key)}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-lg border text-left transition-colors ${
+                  onClick={() => toggleFeature(f.key)}
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg border text-left transition-colors cursor-pointer hover:bg-secondary/50 ${
                     on
                       ? "border-primary bg-primary/5"
                       : "border-border bg-card text-muted-foreground"
-                  } ${f.alwaysOn ? "cursor-default opacity-80" : "hover:bg-secondary/50 cursor-pointer"}`}
+                  }`}
                 >
                   <span className="text-xl shrink-0">{f.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium ${on ? "text-foreground" : ""}`}>
                       {f.title}
-                      {f.alwaysOn && (
-                        <span className="ml-2 text-xs text-muted-foreground font-normal">
-                          (alltid på)
-                        </span>
-                      )}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
                   </div>
