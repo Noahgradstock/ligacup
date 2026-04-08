@@ -139,7 +139,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
             awayTeam={m.awayTeam}
             awayFlag={m.awayFlag}
             scheduledAt={m.scheduledAt}
-            groupName=""
+            groupName={m.roundName}
             existingHome={m.existingHome}
             existingAway={m.existingAway}
             isLocked={m.isLocked}

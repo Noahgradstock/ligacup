@@ -261,7 +261,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                   {label}
                 </p>
                 {dayMatches.map((m) => (
-                  <MatchCard key={m.matchId} {...m} leagueId={leagueId} onSave={handleSave} />
+                  <MatchCard key={m.matchId} {...m} groupName={`Grupp ${m.groupName}`} leagueId={leagueId} onSave={handleSave} />
                 ))}
               </div>
             );
@@ -281,7 +281,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
         ) : (
           <>
             {filtered.map((m) => (
-              <MatchCard key={m.matchId} {...m} leagueId={leagueId} onSave={handleSave} />
+              <MatchCard key={m.matchId} {...m} groupName={`Grupp ${m.groupName}`} leagueId={leagueId} onSave={handleSave} />
             ))}
             {filtered.length > 0 && (
               <GroupStandings groupMatches={filtered} predMap={predMap} />

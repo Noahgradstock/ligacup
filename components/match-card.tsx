@@ -130,8 +130,8 @@ export function MatchCard({
     }`}>
       {/* Meta row */}
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-xs font-semibold text-primary tracking-wide">
-          Grupp {groupName}
+        <span className="text-xs font-semibold text-foreground tracking-wide">
+          {groupName}
         </span>
         <div className="flex items-center gap-2">
           {myBadge && (
