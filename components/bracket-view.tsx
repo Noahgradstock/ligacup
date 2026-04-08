@@ -34,11 +34,12 @@ type Props = {
   leagueId: string;
 };
 
-const ROUND_SHORT: Record<string, string> = {
-  ROUND_OF_32: "Omg 32",
-  ROUND_OF_16: "Omg 16",
-  QF: "Kvart",
-  SF: "Semi",
+// Compact labels for the bracket overview column headers (space is tight)
+const ROUND_COMPACT: Record<string, string> = {
+  ROUND_OF_32: "Åttondels",
+  ROUND_OF_16: "Sextondels",
+  QF: "Kvartsfinal",
+  SF: "Semifinal",
   FINAL: "Final",
 };
 
@@ -90,7 +91,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                {ROUND_SHORT[r.roundType] ?? r.roundName}
+                {r.roundName}
                 {allTipped && activeRound !== r.roundType && (
                   <span className="text-xs leading-none">✓</span>
                 )}
@@ -186,7 +187,7 @@ function BracketOverview({
               <div key={r.roundType} className="flex items-center">
                 <div className="flex flex-col gap-2 min-w-[110px] px-1">
                   <p className="text-[10px] font-semibold text-center text-muted-foreground uppercase tracking-wide mb-1">
-                    {ROUND_SHORT[r.roundType] ?? r.roundName}
+                    {ROUND_COMPACT[r.roundType] ?? r.roundName}
                   </p>
                   {roundMatches.map((m) => {
                     const pred = predMap.get(m.matchId);
@@ -202,11 +203,11 @@ function BracketOverview({
                             : "border-border bg-background hover:bg-secondary/40"
                         }`}
                       >
-                        <div className="flex items-center gap-1 text-[11px] leading-tight">
+                        <div className="flex items-center gap-1 text-[11px] leading-tight text-foreground">
                           <span className="text-sm leading-none">{m.homeFlag}</span>
                           <span className="truncate max-w-[50px] font-medium">{m.homeTeam}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-[11px] leading-tight mt-0.5">
+                        <div className="flex items-center gap-1 text-[11px] leading-tight mt-0.5 text-foreground">
                           <span className="text-sm leading-none">{m.awayFlag}</span>
                           <span className="truncate max-w-[50px] font-medium">{m.awayTeam}</span>
                         </div>
