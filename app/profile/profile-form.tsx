@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 
 export function ProfileForm({ initialName }: { initialName: string }) {
   const [name, setName] = useState(initialName);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "ratelimit">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -17,12 +18,24 @@ export function ProfileForm({ initialName }: { initialName: string }) {
       body: JSON.stringify({ displayName: name }),
     });
 
-    setStatus(res.ok ? "saved" : "error");
-    if (res.ok) setTimeout(() => setStatus("idle"), 2000);
+    if (res.ok) {
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } else if (res.status === 429) {
+      setErrorMsg(await res.text());
+      setStatus("ratelimit");
+    } else {
+      setStatus("error");
+    }
   }
 
   return (
     <form onSubmit={save} className="flex flex-col gap-3">
+      {status === "ratelimit" && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          {errorMsg}
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="displayName" className="text-sm text-muted-foreground">
           Visningsnamn
@@ -42,7 +55,7 @@ export function ProfileForm({ initialName }: { initialName: string }) {
         disabled={status === "saving" || name.trim().length === 0}
         variant={status === "saved" ? "outline" : "default"}
       >
-        {status === "saving" ? "Sparar..." : status === "saved" ? "Sparat ✓" : status === "error" ? "Fel – försök igen" : "Spara"}
+        {status === "saving" ? "Sparar..." : status === "saved" ? "Sparat ✓" : status === "error" ? "Fel – försök igen" : status === "ratelimit" ? "Försök igen senare" : "Spara"}
       </Button>
     </form>
   );
