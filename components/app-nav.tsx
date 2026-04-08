@@ -44,7 +44,7 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
             ← {backLabel}
           </span>
         ) : (
-          <LogoWordmark showDotSe={false} />
+          <LogoWordmark />
         )}
       </Link>
 

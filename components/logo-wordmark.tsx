@@ -1,13 +1,12 @@
 /**
  * Ligacup wordmark — "Liga" medium + "cup" bold gold + ".se" muted.
- * Drop showDotSe to hide the suffix (e.g. in-app headers).
+ * "Liga" medium + "Cup" extrabold gold.
  */
-export function LogoWordmark({ showDotSe = true }: { showDotSe?: boolean }) {
+export function LogoWordmark() {
   return (
     <span className="tracking-tight">
       <span className="font-medium">Liga</span>
-      <span className="font-extrabold text-accent">cup</span>
-      {showDotSe && <span className="font-bold text-muted-foreground">.se</span>}
+      <span className="font-extrabold text-accent">Cup</span>
     </span>
   );
 }
