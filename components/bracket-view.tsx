@@ -121,8 +121,15 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
       {activeMatches.some((m) => m.isTbd) && (
         <div className="mb-3 px-3 py-2.5 rounded-lg bg-secondary/50 border border-border">
           <p className="text-xs text-muted-foreground">
-            Lag är ännu inte klara — tippa vilket resultat du tror blir det oavsett.
-            Namnen uppdateras när gruppspelet är klart.
+            {activeRound === "ROUND_OF_32"
+              ? "Lag är ännu inte klara — tippa vilket resultat du tror. Namnen uppdateras när gruppspelet är klart."
+              : activeRound === "ROUND_OF_16"
+              ? "Tippa klart åttondelsfinalerna för att se vilka lag som möts."
+              : activeRound === "QF"
+              ? "Tippa klart sextondelsfinalen för att se vilka lag som möts."
+              : activeRound === "SF"
+              ? "Tippa klart kvartsfinalen för att se vilka lag som möts."
+              : "Tippa klart semifinalen för att se vilka lag som möts."}
           </p>
         </div>
       )}

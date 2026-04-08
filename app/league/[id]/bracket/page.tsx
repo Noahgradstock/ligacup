@@ -289,6 +289,36 @@ export default async function BracketPage({
     }
   }
 
+  // ── Derive knockout winners from user's bracket predictions ─────────────────
+  // Rows are ordered by roundSequence then matchNumber, so R32 is processed
+  // before R16 before QF etc. — each round populates slots used by the next.
+  if (dbUser) {
+    for (const { match, round, homeTeamName, homeTeamCode, awayTeamName, awayTeamCode } of rows) {
+      const pred = predMap.get(match.id);
+      if (!pred || match.matchNumber === null || pred.home === pred.away) continue;
+
+      const { homeSlot, awaySlot } = parseVenueSlots(match.venue);
+      const resolvedHome = homeTeamName
+        ? { name: homeTeamName, flag: toFlag(homeTeamCode) }
+        : homeSlot ? (slotTeamMap.get(homeSlot) ?? null) : null;
+      const resolvedAway = awayTeamName
+        ? { name: awayTeamName, flag: toFlag(awayTeamCode) }
+        : awaySlot ? (slotTeamMap.get(awaySlot) ?? null) : null;
+
+      const winner = pred.home > pred.away ? resolvedHome : resolvedAway;
+      if (!winner) continue;
+
+      // Slot key format used by the *next* round's venues (see seed.ts):
+      //   R32 / R16 winners → "VM{matchNumber}"  (used by R16 / QF venues)
+      //   QF winners        → "VK{matchNumber}"  (used by SF venues)
+      //   SF winners        → "VS{matchNumber}"  (used by Final venue)
+      const prefix = round.roundType === "QF" ? "VK"
+                   : round.roundType === "SF" ? "VS"
+                   : "VM";
+      slotTeamMap.set(`${prefix}${match.matchNumber}`, winner);
+    }
+  }
+
   const now = new Date();
   const defaultRules = { pointsExactScore: 3, pointsCorrectWinner: 1, pointsCorrectDraw: 1 };
 
