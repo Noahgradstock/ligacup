@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   title: "Ligacup.se — Tipslag för VM 2026",
   description:
     "Skapa ett privat tipslag, förutsäg matchresultat och tävla om äran med dina vänner. Gratis att använda.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
   openGraph: {
     siteName: "Ligacup.se",
     locale: "sv_SE",

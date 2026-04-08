@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 188 48" fill="none">
+  <defs>
+    <linearGradient id="badge-bg-d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Badge -->
+  <rect width="48" height="48" rx="11" fill="url(#badge-bg-d)"/>
+  <!-- "LC" in badge — L white, C gold -->
+  <text
+    x="24" y="34"
+    text-anchor="middle"
+    font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+    font-weight="800"
+    font-size="29"
+    letter-spacing="-0.5"
+  ><tspan fill="#FFFFFF">L</tspan><tspan fill="#EAB308">C</tspan></text>
+
+  <!-- Wordmark — white text on dark background -->
+  <text
+    x="60" y="31"
+    font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+    font-size="26"
+    letter-spacing="-0.3"
+  ><tspan
+    fill="#F8FAFC"
+    font-weight="500"
+  >Liga</tspan><tspan
+    fill="#EAB308"
+    font-weight="800"
+  >cup</tspan></text>
+</svg>
