@@ -3,7 +3,7 @@
  * Called on dashboard load so the app works even if the webhook hasn't fired.
  */
 import { currentUser } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
@@ -33,7 +33,9 @@ export async function syncCurrentUser() {
       target: users.clerkId,
       set: {
         email: primaryEmail,
-        displayName,
+        // Keep the user's custom display name if they've set one;
+        // only fall back to Clerk name when the DB value is null.
+        displayName: sql`COALESCE(${users.displayName}, ${displayName})`,
         username: clerkUser.username ?? null,
         avatarUrl: clerkUser.imageUrl ?? null,
         updatedAt: new Date(),
