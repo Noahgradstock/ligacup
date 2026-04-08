@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { pointSnapshots, users } from "@/lib/db/schema";
 import { redis, keys } from "@/lib/redis";
@@ -27,13 +27,27 @@ export async function GET(
       const entries: LeaderboardEntry[] = [];
       for (let i = 0; i < raw.length; i += 2) {
         const member = JSON.parse(raw[i]);
-        const score = parseInt(raw[i + 1], 10);
-        entries.push({
-          ...member,
-          totalPoints: score,
-          rank: entries.length + 1,
-        });
+        entries.push({ ...member, totalPoints: parseInt(raw[i + 1], 10), rank: entries.length + 1 });
       }
+
+      // Overlay fresh displayName/avatarUrl from Postgres — Redis JSON can be stale
+      const userIds = entries.map((e) => e.userId);
+      if (userIds.length > 0) {
+        const freshUsers = await db
+          .select({ id: users.id, displayName: users.displayName, email: users.email, avatarUrl: users.avatarUrl })
+          .from(users)
+          .where(inArray(users.id, userIds));
+        const userMap = new Map(freshUsers.map((u) => [u.id, u]));
+        for (const entry of entries) {
+          const fresh = userMap.get(entry.userId);
+          if (fresh) {
+            entry.displayName = fresh.displayName;
+            entry.email = fresh.email;
+            entry.avatarUrl = fresh.avatarUrl ?? null;
+          }
+        }
+      }
+
       return Response.json(entries);
     }
   } catch {

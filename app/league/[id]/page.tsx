@@ -64,6 +64,14 @@ export default async function LeaguePage({
         const member = JSON.parse(raw[i]);
         initialLeaderboard.push({ ...member, totalPoints: parseInt(raw[i + 1], 10), rank: initialLeaderboard.length + 1 });
       }
+      // Overlay fresh displayName/avatarUrl — members is already fetched from DB above
+      const memberMap = new Map(members.map((m) => [m.userId, m]));
+      initialLeaderboard = initialLeaderboard.map((entry) => {
+        const fresh = memberMap.get(entry.userId);
+        return fresh
+          ? { ...entry, displayName: fresh.displayName, email: fresh.email, avatarUrl: fresh.avatarUrl ?? null }
+          : entry;
+      });
     }
   } catch {
     // Redis unavailable — use Postgres
