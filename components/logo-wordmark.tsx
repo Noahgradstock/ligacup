@@ -7,7 +7,7 @@ export function LogoWordmark({ showDotSe = true }: { showDotSe?: boolean }) {
     <span className="tracking-tight">
       <span className="font-medium">Liga</span>
       <span className="font-extrabold text-accent">cup</span>
-      {showDotSe && <span className="font-bold text-primary">.se</span>}
+      {showDotSe && <span className="font-bold text-muted-foreground">.se</span>}
     </span>
   );
 }
