@@ -5,12 +5,13 @@ import { db } from "@/lib/db";
 import { users, notifications } from "@/lib/db/schema";
 import { NotificationBell } from "./notification-bell";
 import { LogoWordmark } from "./logo-wordmark";
+import { DesktopCenterNav } from "./desktop-center-nav";
 
 type Props = {
   /** Show a back link instead of the logo link going to dashboard */
   backHref?: string;
   backLabel?: string;
-  /** Centered bold title */
+  /** Centered bold title — shown on mobile only (desktop uses center nav) */
   centerTitle?: string;
   /** Right-side content override */
   rightSlot?: React.ReactNode;
@@ -21,7 +22,6 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
 
   let unreadCount = 0;
   if (clerkId) {
-    // Look up by clerkId — don't upsert here (AppNav renders on every page)
     const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
     if (user) {
       const [{ value }] = await db
@@ -33,7 +33,8 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
   }
 
   return (
-    <nav className="relative flex items-center justify-between px-6 py-4 border-b border-border">
+    <nav className="relative flex items-center justify-between px-6 h-14 border-b border-border">
+      {/* Left — logo or back link */}
       <Link
         href={backHref ?? "/dashboard"}
         className="font-bold text-xl tracking-tight shrink-0"
@@ -47,15 +48,23 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
         )}
       </Link>
 
+      {/* Center — desktop: Facebook-style icon nav | mobile: league title */}
+      {clerkId && <DesktopCenterNav unreadCount={unreadCount} />}
+
       {centerTitle && (
-        <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold truncate max-w-[40%] text-center pointer-events-none">
+        <span className="sm:hidden absolute left-1/2 -translate-x-1/2 text-base font-bold truncate max-w-[40%] text-center pointer-events-none">
           {centerTitle}
         </span>
       )}
 
+      {/* Right — notification bell (mobile only) + any extra slot */}
       <div className="flex items-center gap-2 shrink-0">
         {rightSlot}
-        {clerkId && <NotificationBell initialCount={unreadCount} />}
+        {clerkId && (
+          <div className="sm:hidden">
+            <NotificationBell initialCount={unreadCount} />
+          </div>
+        )}
       </div>
     </nav>
   );
