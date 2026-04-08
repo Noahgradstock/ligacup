@@ -273,8 +273,8 @@ async function main() {
 
   // Knockout rounds
   const knockoutRoundDefs = [
-    { name: "Åttondelsfinaler",  roundType: "ROUND_OF_32", sequenceOrder: 13, deadline: new Date("2026-06-27T20:59:00Z") },
-    { name: "Sextondelsfinaler", roundType: "ROUND_OF_16", sequenceOrder: 14, deadline: new Date("2026-07-03T20:59:00Z") },
+    { name: "Sextondelsfinaler", roundType: "ROUND_OF_32", sequenceOrder: 13, deadline: new Date("2026-06-27T20:59:00Z") },
+    { name: "Åttondelsfinaler",  roundType: "ROUND_OF_16", sequenceOrder: 14, deadline: new Date("2026-07-03T20:59:00Z") },
     { name: "Kvartsfinaler",     roundType: "QF",           sequenceOrder: 15, deadline: new Date("2026-07-07T20:59:00Z") },
     { name: "Semifinaler",       roundType: "SF",           sequenceOrder: 16, deadline: new Date("2026-07-11T20:59:00Z") },
     { name: "Final",             roundType: "FINAL",        sequenceOrder: 17, deadline: new Date("2026-07-18T20:59:00Z") },

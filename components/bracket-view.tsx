@@ -44,9 +44,22 @@ const ROUND_COMPACT: Record<string, string> = {
   FINAL: "Final",
 };
 
+const SESSION_KEY = "bracket-active-round";
+
 export function BracketView({ matches, rounds, leagueId }: Props) {
   const router = useRouter();
-  const [activeRound, setActiveRound] = useState<string>(rounds[0]?.roundType ?? "");
+  const [activeRound, setActiveRound] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (saved && rounds.some((r) => r.roundType === saved)) return saved;
+    }
+    return rounds[0]?.roundType ?? "";
+  });
+
+  function switchRound(roundType: string) {
+    setActiveRound(roundType);
+    sessionStorage.setItem(SESSION_KEY, roundType);
+  }
   const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
     const m = new Map<string, { home: number; away: number }>();
     for (const match of matches) {
@@ -87,7 +100,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
             return (
               <button
                 key={r.roundType}
-                onClick={() => setActiveRound(r.roundType)}
+                onClick={() => switchRound(r.roundType)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   activeRound === r.roundType
                     ? allTipped
@@ -167,7 +180,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
       </div>
 
       {/* Bracket overview (mini) */}
-      <BracketOverview matches={matches} rounds={rounds} activeRound={activeRound} onSelectRound={setActiveRound} predMap={predMap} />
+      <BracketOverview matches={matches} rounds={rounds} activeRound={activeRound} onSelectRound={switchRound} predMap={predMap} />
     </div>
   );
 }

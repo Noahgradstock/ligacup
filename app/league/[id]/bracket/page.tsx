@@ -367,9 +367,15 @@ export default async function BracketPage({
     };
   });
 
+  // Correct round names that were seeded with swapped labels (fixed in seed.ts,
+  // but existing DB rows have the old wrong values until a re-seed is run).
+  const ROUND_NAME_CORRECT: Record<string, string> = {
+    ROUND_OF_32: "Sextondelsfinaler",
+    ROUND_OF_16: "Åttondelsfinaler",
+  };
   const rounds = knockoutRounds.map((r) => ({
     roundType: r.roundType,
-    roundName: r.name,
+    roundName: ROUND_NAME_CORRECT[r.roundType] ?? r.name,
   }));
 
   return (
