@@ -88,12 +88,25 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
     return m;
   });
 
+  // Tracks how many times each match has been cleared via invalidation.
+  // Incrementing the count changes the MatchCard key → React unmounts + remounts
+  // the card with existingHome=null, so it shows as blank/unsaved immediately
+  // (consistent with the DB record having been deleted).
+  const [matchBumpCount, setMatchBumpCount] = useState<Map<string, number>>(new Map());
+
   function handleSave(matchId: string, home: number, away: number, invalidatedMatchIds: string[]) {
     setPredMap((prev) => {
       const next = new Map(prev).set(matchId, { home, away });
       for (const id of invalidatedMatchIds) next.delete(id);
       return next;
     });
+    if (invalidatedMatchIds.length > 0) {
+      setMatchBumpCount((prev) => {
+        const next = new Map(prev);
+        for (const id of invalidatedMatchIds) next.set(id, (next.get(id) ?? 0) + 1);
+        return next;
+      });
+    }
   }
 
   // Client-side winner derivation: process matches in matchNumber order so
@@ -140,13 +153,13 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
   const prevRound = activeRoundIndex > 0 ? rounds[activeRoundIndex - 1] : null;
   const nextRound = activeRoundIndex < rounds.length - 1 ? rounds[activeRoundIndex + 1] : null;
 
-  // Count tips per round for badge
+  // Count tips per round for badge.
+  // Use predMap only (initialized from server existingHome, updated on saves/clears).
+  // Do NOT fall back to m.existingHome — that would keep counting cleared predictions.
   const tipsByRound = new Map<string, number>();
   for (const r of rounds) {
     const roundMatches = matches.filter((m) => m.roundType === r.roundType);
-    const tipped = roundMatches.filter(
-      (m) => predMap.has(m.matchId) || m.existingHome !== null
-    ).length;
+    const tipped = roundMatches.filter((m) => predMap.has(m.matchId)).length;
     tipsByRound.set(r.roundType, tipped);
   }
 
@@ -214,26 +227,30 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
 
       {/* Match cards */}
       <div className="flex flex-col gap-3">
-        {activeMatches.map((m) => (
-          <MatchCard
-            key={m.matchId}
-            matchId={m.matchId}
-            leagueId={leagueId}
-            homeTeam={m.homeTeam}
-            homeFlag={m.homeFlag}
-            awayTeam={m.awayTeam}
-            awayFlag={m.awayFlag}
-            scheduledAt={m.scheduledAt}
-            groupName={m.roundName}
-            existingHome={m.existingHome}
-            existingAway={m.existingAway}
-            isLocked={m.isLocked}
-            actualHome={m.actualHome}
-            actualAway={m.actualAway}
-            pointsEarned={m.pointsEarned}
-            onSave={handleSave}
-          />
-        ))}
+        {activeMatches.map((m) => {
+          const bumpCount = matchBumpCount.get(m.matchId) ?? 0;
+          const isCleared = bumpCount > 0 && !predMap.has(m.matchId);
+          return (
+            <MatchCard
+              key={`${m.matchId}-${bumpCount}`}
+              matchId={m.matchId}
+              leagueId={leagueId}
+              homeTeam={m.homeTeam}
+              homeFlag={m.homeFlag}
+              awayTeam={m.awayTeam}
+              awayFlag={m.awayFlag}
+              scheduledAt={m.scheduledAt}
+              groupName={m.roundName}
+              existingHome={isCleared ? null : m.existingHome}
+              existingAway={isCleared ? null : m.existingAway}
+              isLocked={m.isLocked}
+              actualHome={m.actualHome}
+              actualAway={m.actualAway}
+              pointsEarned={m.pointsEarned}
+              onSave={handleSave}
+            />
+          );
+        })}
         {activeMatches.length === 0 && (
           <p className="text-muted-foreground text-sm text-center py-8">
             Inga matcher i den här rundan.
@@ -309,7 +326,7 @@ function BracketOverview({
                   </p>
                   {roundMatches.map((m) => {
                     const pred = predMap.get(m.matchId);
-                    const hasPred = pred !== undefined || m.existingHome !== null;
+                    const hasPred = pred !== undefined;
                     const isActive = r.roundType === activeRound;
                     return (
                       <button
@@ -331,7 +348,7 @@ function BracketOverview({
                         </div>
                         {hasPred && (
                           <div className="mt-1 text-[10px] text-muted-foreground font-mono tabular-nums">
-                            {pred?.home ?? m.existingHome}–{pred?.away ?? m.existingAway}
+                            {pred.home}–{pred.away}
                           </div>
                         )}
                       </button>

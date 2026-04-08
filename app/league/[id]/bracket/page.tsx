@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { eq, inArray, and, count } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -77,10 +77,13 @@ export default async function BracketPage({
     if (!membership) notFound();
   }
 
-  // Gate: user must have predicted all group stage matches before accessing bracket
+  // Gate: user must have predicted all group stage matches before accessing bracket.
+  // Locked matches (scheduledAt in the past) that the user missed can never be
+  // predicted, so they don't count toward the required total — otherwise users
+  // would be permanently locked out as the group stage progresses.
   if (dbUser) {
-    const groupMatchIds = await db
-      .select({ id: matches.id })
+    const groupMatchRows = await db
+      .select({ id: matches.id, scheduledAt: matches.scheduledAt })
       .from(matches)
       .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
       .where(
@@ -90,21 +93,29 @@ export default async function BracketPage({
         )
       );
 
-    const totalGroupMatches = groupMatchIds.length;
+    const totalGroupMatches = groupMatchRows.length;
 
-    const [{ value: tippedCount }] = await db
-      .select({ value: count() })
+    const userGroupPreds = await db
+      .select({ matchId: predictions.matchId })
       .from(predictions)
       .where(
         and(
-          inArray(predictions.matchId, groupMatchIds.map((m) => m.id)),
+          inArray(predictions.matchId, groupMatchRows.map((m) => m.id)),
           eq(predictions.leagueId, id),
           eq(predictions.userId, dbUser.id)
         )
       );
 
-    if (tippedCount < totalGroupMatches) {
-      const remaining = totalGroupMatches - tippedCount;
+    const tippedCount = userGroupPreds.length;
+    const tippedIds = new Set(userGroupPreds.map((p) => p.matchId));
+    const gateNow = new Date();
+    const lockedWithoutPred = groupMatchRows.filter(
+      (m) => gateNow >= m.scheduledAt && !tippedIds.has(m.id)
+    ).length;
+    const required = totalGroupMatches - lockedWithoutPred;
+
+    if (tippedCount < required) {
+      const remaining = required - tippedCount;
       return (
         <div className="max-w-2xl mx-auto w-full px-4 py-16 flex flex-col items-center gap-6 text-center">
           <div className="text-5xl">🔒</div>
@@ -126,12 +137,12 @@ export default async function BracketPage({
           <div className="w-full max-w-xs">
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>{tippedCount} tippade</span>
-              <span>{totalGroupMatches} totalt</span>
+              <span>{required} totalt</span>
             </div>
             <div className="h-2 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${(tippedCount / totalGroupMatches) * 100}%` }}
+                style={{ width: `${(tippedCount / required) * 100}%` }}
               />
             </div>
           </div>

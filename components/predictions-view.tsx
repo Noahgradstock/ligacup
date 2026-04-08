@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MatchCard } from "@/components/match-card";
 import { useSSE } from "@/hooks/use-sse";
+import { computeGroupStandings, StandingsTeam } from "@/lib/predictor/standings";
 
 type MatchRow = {
   matchId: string;
@@ -22,61 +23,6 @@ type MatchRow = {
   pointsEarned: number | null;
 };
 
-type TeamRow = {
-  name: string;
-  flag: string;
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
-  gf: number;
-  ga: number;
-  pts: number;
-};
-
-function computeStandings(
-  groupMatches: MatchRow[],
-  predMap: Map<string, { home: number; away: number }>
-): TeamRow[] {
-  const map = new Map<string, TeamRow>();
-
-  for (const m of groupMatches) {
-    if (!map.has(m.homeTeam))
-      map.set(m.homeTeam, { name: m.homeTeam, flag: m.homeFlag, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 });
-    if (!map.has(m.awayTeam))
-      map.set(m.awayTeam, { name: m.awayTeam, flag: m.awayFlag, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, pts: 0 });
-  }
-
-  for (const m of groupMatches) {
-    // Prioritise: confirmed result > user's saved prediction
-    const pred = predMap.get(m.matchId);
-    const h = m.actualHome ?? pred?.home ?? null;
-    const a = m.actualAway ?? pred?.away ?? null;
-    if (h === null || a === null) continue;
-
-    const home = map.get(m.homeTeam)!;
-    const away = map.get(m.awayTeam)!;
-    home.played++; away.played++;
-    home.gf += h; home.ga += a;
-    away.gf += a; away.ga += h;
-    if (h > a) {
-      home.won++; home.pts += 3; away.lost++;
-    } else if (h < a) {
-      away.won++; away.pts += 3; home.lost++;
-    } else {
-      home.drawn++; home.pts += 1; away.drawn++; away.pts += 1;
-    }
-  }
-
-  return [...map.values()].sort((a, b) => {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    const gdA = a.gf - a.ga;
-    const gdB = b.gf - b.ga;
-    if (gdB !== gdA) return gdB - gdA;
-    if (b.gf !== a.gf) return b.gf - a.gf;
-    return a.name.localeCompare(b.name);
-  });
-}
 
 function GroupStandings({
   groupMatches,
@@ -85,10 +31,10 @@ function GroupStandings({
   groupMatches: MatchRow[];
   predMap: Map<string, { home: number; away: number }>;
 }) {
-  const rows = computeStandings(groupMatches, predMap);
+  const rows = computeGroupStandings(groupMatches, predMap);
   if (rows.length === 0) return null;
 
-  const anyData = rows.some((r) => r.played > 0);
+  const anyData = rows.some((r: StandingsTeam) => r.played > 0);
 
   return (
     <div className="mt-6 rounded-xl border border-border overflow-hidden">
@@ -117,7 +63,7 @@ function GroupStandings({
             </tr>
           </thead>
           <tbody>
-            {rows.map((t, i) => (
+            {rows.map((t: StandingsTeam, i: number) => (
               <tr
                 key={t.name}
                 className={`border-b border-border last:border-0 transition-colors ${
