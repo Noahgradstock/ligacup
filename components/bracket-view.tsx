@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import { MatchCard } from "@/components/match-card";
 
 type BracketMatch = {
@@ -37,8 +36,8 @@ type Props = {
 
 // Compact labels for the bracket overview column headers (space is tight)
 const ROUND_COMPACT: Record<string, string> = {
-  ROUND_OF_32: "Åttondels",
-  ROUND_OF_16: "Sextondels",
+  ROUND_OF_32: "Sextondels",
+  ROUND_OF_16: "Åttondels",
   QF: "Kvartsfinal",
   SF: "Semifinal",
   FINAL: "Final",
@@ -46,8 +45,26 @@ const ROUND_COMPACT: Record<string, string> = {
 
 const SESSION_KEY = "bracket-active-round";
 
+// Resolve "V. match N" / "V. kvartsfinal N" / "V. semifinal N" labels by looking
+// up the predicted winner of that match number in the provided map.
+function resolveTeam(
+  name: string,
+  flag: string,
+  winnerMap: Map<number, { name: string; flag: string }>
+): { name: string; flag: string } {
+  const m = name.match(/V\.\s+\w+\s+(\d+)/);
+  if (m) {
+    const winner = winnerMap.get(Number(m[1]));
+    if (winner) return winner;
+  }
+  return { name, flag };
+}
+
+function isTbdName(name: string) {
+  return /^V\./.test(name) || name === "TBD";
+}
+
 export function BracketView({ matches, rounds, leagueId }: Props) {
-  const router = useRouter();
   const [activeRound, setActiveRound] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem(SESSION_KEY);
@@ -60,6 +77,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
     setActiveRound(roundType);
     sessionStorage.setItem(SESSION_KEY, roundType);
   }
+
   const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
     const m = new Map<string, { home: number; away: number }>();
     for (const match of matches) {
@@ -72,10 +90,48 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
 
   function handleSave(matchId: string, home: number, away: number) {
     setPredMap((prev) => new Map(prev).set(matchId, { home, away }));
-    router.refresh();
+    // No router.refresh() — winner names are derived client-side below,
+    // so they update instantly without a slow server round-trip.
   }
 
-  const activeMatches = matches.filter((m) => m.roundType === activeRound);
+  // Client-side winner derivation: process matches in matchNumber order so
+  // R32 winners cascade into R16, R16 winners into QF, etc.
+  // This mirrors the server-side logic in bracket/page.tsx but runs locally,
+  // meaning teams update the moment a prediction is saved.
+  const winnerByMatchNumber = useMemo(() => {
+    const map = new Map<number, { name: string; flag: string }>();
+    const sorted = [...matches].sort((a, b) => a.matchNumber - b.matchNumber);
+    for (const m of sorted) {
+      if (!m.matchNumber) continue;
+      const pred = predMap.get(m.matchId);
+      if (!pred) continue;
+      const home = resolveTeam(m.homeTeam, m.homeFlag, map);
+      const away = resolveTeam(m.awayTeam, m.awayFlag, map);
+      const winner = pred.home >= pred.away ? home : away;
+      if (!isTbdName(winner.name)) {
+        map.set(m.matchNumber, winner);
+      }
+    }
+    return map;
+  }, [matches, predMap]);
+
+  // Apply client-side resolution to every match
+  const resolvedMatches = useMemo(() => {
+    return matches.map((m) => {
+      const home = resolveTeam(m.homeTeam, m.homeFlag, winnerByMatchNumber);
+      const away = resolveTeam(m.awayTeam, m.awayFlag, winnerByMatchNumber);
+      return {
+        ...m,
+        homeTeam: home.name,
+        homeFlag: home.flag,
+        awayTeam: away.name,
+        awayFlag: away.flag,
+        isTbd: isTbdName(home.name) || isTbdName(away.name),
+      };
+    });
+  }, [matches, winnerByMatchNumber]);
+
+  const activeMatches = resolvedMatches.filter((m) => m.roundType === activeRound);
   const activeRoundMeta = rounds.find((r) => r.roundType === activeRound);
 
   // Count tips per round for badge
@@ -140,9 +196,9 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
             {activeRound === "ROUND_OF_32"
               ? "Lag är ännu inte klara — tippa vilket resultat du tror. Namnen uppdateras när gruppspelet är klart."
               : activeRound === "ROUND_OF_16"
-              ? "Tippa klart åttondelsfinalerna för att se vilka lag som möts."
-              : activeRound === "QF"
               ? "Tippa klart sextondelsfinalen för att se vilka lag som möts."
+              : activeRound === "QF"
+              ? "Tippa klart åttondelsfinalerna för att se vilka lag som möts."
               : activeRound === "SF"
               ? "Tippa klart kvartsfinalen för att se vilka lag som möts."
               : "Tippa klart semifinalen för att se vilka lag som möts."}
@@ -180,7 +236,13 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
       </div>
 
       {/* Bracket overview (mini) */}
-      <BracketOverview matches={matches} rounds={rounds} activeRound={activeRound} onSelectRound={switchRound} predMap={predMap} />
+      <BracketOverview
+        matches={resolvedMatches}
+        rounds={rounds}
+        activeRound={activeRound}
+        onSelectRound={switchRound}
+        predMap={predMap}
+      />
     </div>
   );
 }
@@ -198,7 +260,6 @@ function BracketOverview({
   onSelectRound: (r: string) => void;
   predMap: Map<string, { home: number; away: number }>;
 }) {
-  // Only show if we have at least R16 and QF
   if (rounds.length < 2) return null;
 
   return (
