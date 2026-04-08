@@ -3,7 +3,6 @@
  * Called on dashboard load so the app works even if the webhook hasn't fired.
  */
 import { currentUser } from "@clerk/nextjs/server";
-import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
@@ -33,9 +32,9 @@ export async function syncCurrentUser() {
       target: users.clerkId,
       set: {
         email: primaryEmail,
-        // Keep the user's custom display name if they've set one;
-        // only fall back to Clerk name when the DB value is null.
-        displayName: sql`COALESCE(${users.displayName}, ${displayName})`,
+        // displayName is intentionally excluded — it is set on first insert
+        // from Clerk and thereafter only changed via /api/profile.
+        // Including it here would overwrite the user's custom name on every page load.
         username: clerkUser.username ?? null,
         avatarUrl: clerkUser.imageUrl ?? null,
         updatedAt: new Date(),
