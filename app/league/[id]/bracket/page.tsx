@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { eq, inArray, and, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";

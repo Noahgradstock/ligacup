@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MatchCard } from "@/components/match-card";
 
 type BracketMatch = {
@@ -44,6 +45,7 @@ const ROUND_COMPACT: Record<string, string> = {
 };
 
 export function BracketView({ matches, rounds, leagueId }: Props) {
+  const router = useRouter();
   const [activeRound, setActiveRound] = useState<string>(rounds[0]?.roundType ?? "");
   const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
     const m = new Map<string, { home: number; away: number }>();
@@ -57,6 +59,7 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
 
   function handleSave(matchId: string, home: number, away: number) {
     setPredMap((prev) => new Map(prev).set(matchId, { home, away }));
+    router.refresh();
   }
 
   const activeMatches = matches.filter((m) => m.roundType === activeRound);
