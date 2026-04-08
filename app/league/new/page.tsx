@@ -311,8 +311,8 @@ export default function NewLeaguePage() {
           </div>
         </section>
 
-        {/* ── 5: Scoring rules ── */}
-        <section className="flex flex-col gap-4">
+        {/* ── 5: Scoring rules — only shown when match_scores is enabled ── */}
+        {enabledFeatures.has("match_scores") && <section className="flex flex-col gap-4">
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Poängregler — matchresultat
@@ -372,7 +372,7 @@ export default function NewLeaguePage() {
               </div>
             ))}
           </div>
-        </section>
+        </section>}
 
         {status === "error" && (
           <p className="text-sm text-destructive -mt-4">{errorMsg}</p>
