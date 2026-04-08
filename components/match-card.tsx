@@ -17,7 +17,7 @@ type Props = {
   actualHome: number | null;
   actualAway: number | null;
   pointsEarned: number | null;
-  onSave?: (matchId: string, home: number, away: number) => void;
+  onSave?: (matchId: string, home: number, away: number, invalidatedMatchIds: string[]) => void;
 };
 
 type MemberPrediction = {
@@ -71,23 +71,28 @@ export function MatchCard({
     const a = parseInt(away, 10);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     setStatus("saving");
-    try {
-      const res = await fetch("/api/predictions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
-      });
-      if (res.ok) {
-        setSavedHome(home);
-        setSavedAway(away);
-        setStatus("saved");
-        onSave?.(matchId, h, a);
-      } else {
-        setStatus("error");
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
+        const res = await fetch("/api/predictions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
+        });
+        if (res.ok) {
+          setSavedHome(home);
+          setSavedAway(away);
+          setStatus("saved");
+          const data = await res.json();
+          onSave?.(matchId, h, a, data.invalidatedMatchIds ?? []);
+          return;
+        }
+        if (res.status < 500) break; // Don't retry 4xx client errors
+      } catch {
+        // Network error — retry
       }
-    } catch {
-      setStatus("error");
     }
+    setStatus("error");
   }
 
   async function toggleOthers() {

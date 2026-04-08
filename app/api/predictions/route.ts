@@ -1,7 +1,50 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, matches, predictions, leagues, leagueMembers } from "@/lib/db/schema";
+import { users, matches, predictions, leagues, leagueMembers, tournamentRounds } from "@/lib/db/schema";
+
+const NEXT_ROUND: Record<string, { nextType: string; prefix: string } | undefined> = {
+  ROUND_OF_32: { nextType: "ROUND_OF_16", prefix: "VM" },
+  ROUND_OF_16: { nextType: "QF", prefix: "VM" },
+  QF: { nextType: "SF", prefix: "VK" },
+  SF: { nextType: "FINAL", prefix: "VS" },
+};
+
+// Find only the ONE match in the next round that directly uses this match's winner slot.
+// We do NOT recurse — deeper rounds keep their predictions and resolve via client-side cascade.
+async function getDirectDownstreamMatchId(
+  matchNumber: number,
+  roundType: string,
+  tournamentId: string
+): Promise<string | null> {
+  const step = NEXT_ROUND[roundType];
+  if (!step) return null;
+
+  const slotKey = `${step.prefix}${matchNumber}`;
+
+  const nextMatches = await db
+    .select({ id: matches.id, venue: matches.venue })
+    .from(matches)
+    .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+    .where(
+      and(
+        eq(matches.tournamentId, tournamentId),
+        eq(tournamentRounds.roundType, step.nextType)
+      )
+    );
+
+  const hit = nextMatches.find((m) => {
+    if (!m.venue) return false;
+    try {
+      const v = JSON.parse(m.venue);
+      return v.homeSlot === slotKey || v.awaySlot === slotKey;
+    } catch {
+      return false;
+    }
+  });
+
+  return hit?.id ?? null;
+}
 
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
@@ -55,23 +98,76 @@ export async function POST(request: Request) {
     return new Response("Not a member of this league", { status: 403 });
   }
 
-  const [match] = await db.select().from(matches).where(eq(matches.id, matchId)).limit(1);
-  if (!match) {
+  const [matchWithRound] = await db
+    .select({ match: matches, roundType: tournamentRounds.roundType })
+    .from(matches)
+    .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+    .where(eq(matches.id, matchId))
+    .limit(1);
+
+  if (!matchWithRound) {
     console.error("[predictions] 404 Match not found:", matchId);
     return new Response("Match not found", { status: 404 });
   }
-  if (new Date() >= match.scheduledAt) {
-    console.error("[predictions] 403 Deadline passed for match:", matchId, "scheduledAt:", match.scheduledAt);
+  if (new Date() >= matchWithRound.match.scheduledAt) {
+    console.error("[predictions] 403 Deadline passed for match:", matchId, "scheduledAt:", matchWithRound.match.scheduledAt);
     return new Response("Prediction deadline has passed", { status: 403 });
   }
 
-  await db
-    .insert(predictions)
-    .values({ userId: user.id, matchId, leagueId, homeScorePred, awayScorePred })
-    .onConflictDoUpdate({
-      target: [predictions.userId, predictions.matchId, predictions.leagueId],
-      set: { homeScorePred, awayScorePred, updatedAt: new Date() },
-    });
+  // Check existing prediction to detect winner change
+  const [oldPred] = await db
+    .select()
+    .from(predictions)
+    .where(
+      and(
+        eq(predictions.userId, user.id),
+        eq(predictions.matchId, matchId),
+        eq(predictions.leagueId, leagueId)
+      )
+    )
+    .limit(1);
 
-  return Response.json({ ok: true });
+  const oldWinnerIsHome = oldPred ? oldPred.homeScorePred >= oldPred.awayScorePred : null;
+  const newWinnerIsHome = homeScorePred >= awayScorePred;
+  const winnerChanged = oldWinnerIsHome !== null && oldWinnerIsHome !== newWinnerIsHome;
+
+  try {
+    await db
+      .insert(predictions)
+      .values({ userId: user.id, matchId, leagueId, homeScorePred, awayScorePred })
+      .onConflictDoUpdate({
+        target: [predictions.userId, predictions.matchId, predictions.leagueId],
+        set: { homeScorePred, awayScorePred, updatedAt: new Date() },
+      });
+  } catch (err) {
+    console.error("[predictions] 500 DB error:", err);
+    return new Response("Internal server error", { status: 500 });
+  }
+
+  // Cascade: clear ONLY the one direct downstream match where the new team now appears.
+  // Deeper rounds (QF, SF, Final) keep their predictions and resolve via client-side cascade.
+  let invalidatedMatchIds: string[] = [];
+  if (winnerChanged && matchWithRound.match.matchNumber !== null) {
+    try {
+      const directId = await getDirectDownstreamMatchId(
+        matchWithRound.match.matchNumber,
+        matchWithRound.roundType,
+        matchWithRound.match.tournamentId
+      );
+      if (directId) {
+        invalidatedMatchIds = [directId];
+        await db.delete(predictions).where(
+          and(
+            eq(predictions.userId, user.id),
+            eq(predictions.leagueId, leagueId),
+            eq(predictions.matchId, directId)
+          )
+        );
+      }
+    } catch (err) {
+      console.error("[predictions] cascade clear error (non-fatal):", err);
+    }
+  }
+
+  return Response.json({ ok: true, invalidatedMatchIds });
 }

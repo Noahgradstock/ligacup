@@ -88,10 +88,12 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
     return m;
   });
 
-  function handleSave(matchId: string, home: number, away: number) {
-    setPredMap((prev) => new Map(prev).set(matchId, { home, away }));
-    // No router.refresh() — winner names are derived client-side below,
-    // so they update instantly without a slow server round-trip.
+  function handleSave(matchId: string, home: number, away: number, invalidatedMatchIds: string[]) {
+    setPredMap((prev) => {
+      const next = new Map(prev).set(matchId, { home, away });
+      for (const id of invalidatedMatchIds) next.delete(id);
+      return next;
+    });
   }
 
   // Client-side winner derivation: process matches in matchNumber order so
@@ -133,6 +135,10 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
 
   const activeMatches = resolvedMatches.filter((m) => m.roundType === activeRound);
   const activeRoundMeta = rounds.find((r) => r.roundType === activeRound);
+
+  const activeRoundIndex = rounds.findIndex((r) => r.roundType === activeRound);
+  const prevRound = activeRoundIndex > 0 ? rounds[activeRoundIndex - 1] : null;
+  const nextRound = activeRoundIndex < rounds.length - 1 ? rounds[activeRoundIndex + 1] : null;
 
   // Count tips per round for badge
   const tipsByRound = new Map<string, number>();
@@ -232,6 +238,30 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
           <p className="text-muted-foreground text-sm text-center py-8">
             Inga matcher i den här rundan.
           </p>
+        )}
+      </div>
+
+      {/* Round navigation */}
+      <div className="flex items-center justify-between gap-3 pt-2 pb-4">
+        {prevRound ? (
+          <button
+            onClick={() => { switchRound(prevRound.roundType); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
+          >
+            ← {prevRound.roundName}
+          </button>
+        ) : (
+          <div />
+        )}
+        {nextRound ? (
+          <button
+            onClick={() => { switchRound(nextRound.roundType); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
+          >
+            {nextRound.roundName} →
+          </button>
+        ) : (
+          <div />
         )}
       </div>
 
