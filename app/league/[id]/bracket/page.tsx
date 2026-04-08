@@ -297,7 +297,7 @@ export default async function BracketPage({
   if (dbUser) {
     for (const { match, round, homeTeamName, homeTeamCode, awayTeamName, awayTeamCode } of rows) {
       const pred = predMap.get(match.id);
-      if (!pred || match.matchNumber === null || pred.home === pred.away) continue;
+      if (!pred || match.matchNumber === null) continue;
 
       const { homeSlot, awaySlot } = parseVenueSlots(match.venue);
       const resolvedHome = homeTeamName
@@ -307,7 +307,8 @@ export default async function BracketPage({
         ? { name: awayTeamName, flag: toFlag(awayTeamCode) }
         : awaySlot ? (slotTeamMap.get(awaySlot) ?? null) : null;
 
-      const winner = pred.home > pred.away ? resolvedHome : resolvedAway;
+      // On draw: home team advances (knockout → extra time/penalties, home team by default)
+      const winner = pred.home >= pred.away ? resolvedHome : resolvedAway;
       if (!winner) continue;
 
       // Slot key format used by the *next* round's venues (see seed.ts):
