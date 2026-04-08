@@ -4,6 +4,7 @@ import { eq, and, count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, notifications } from "@/lib/db/schema";
 import { NotificationBell } from "./notification-bell";
+import { LogoWordmark } from "./logo-wordmark";
 
 type Props = {
   /** Show a back link instead of the logo link going to dashboard */
@@ -42,7 +43,7 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
             ← {backLabel}
           </span>
         ) : (
-          <>Ligacup<span className="text-primary">.se</span></>
+          <LogoWordmark showDotSe={false} />
         )}
       </Link>
 

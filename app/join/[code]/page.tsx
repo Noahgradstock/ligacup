@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { leagues, leagueMembers } from "@/lib/db/schema";
 import { JoinButton } from "./join-button";
+import { LogoWordmark } from "@/components/logo-wordmark";
 
 export default async function JoinPage({
   params,
@@ -29,8 +30,8 @@ export default async function JoinPage({
   return (
     <main className="flex flex-col min-h-screen">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
+        <Link href="/" className="text-xl">
+          <LogoWordmark />
         </Link>
       </nav>
 

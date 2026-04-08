@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LogoWordmark } from "@/components/logo-wordmark";
 
 export default function LandingPage() {
   return (
     <main className="flex flex-col min-h-screen">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <span className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
+        <span className="text-xl">
+          <LogoWordmark />
         </span>
         <div className="flex items-center gap-3">
           <Link href="/dashboard">

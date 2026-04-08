@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminLogin } from "./login";
+import { LogoWordmark } from "@/components/logo-wordmark";
 
 export default async function AdminPage() {
   const jar = await cookies();
@@ -12,7 +13,7 @@ export default async function AdminPage() {
       <div className="w-full max-w-sm px-6 flex flex-col gap-6">
         <div>
           <h1 className="text-xl font-bold">Admin</h1>
-          <p className="text-sm text-muted-foreground">Ligacup.se</p>
+          <p className="text-sm text-muted-foreground"><LogoWordmark /></p>
         </div>
         <AdminLogin />
       </div>

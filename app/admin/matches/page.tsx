@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { matches, teams, tournamentRounds, tournaments } from "@/lib/db/schema";
 import { ResultForm } from "./result-form";
 import { TeamAssignForm } from "./team-assign-form";
+import { LogoWordmark } from "@/components/logo-wordmark";
 
 function toFlag(code: string | null | undefined) {
   if (!code) return "🏳";
@@ -79,7 +80,7 @@ export default async function AdminMatchesPage() {
     <main className="flex flex-col min-h-screen">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
         <Link href="/" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
+          <LogoWordmark />
           <span className="ml-2 text-xs font-normal text-muted-foreground">Admin</span>
         </Link>
         <span className="text-sm text-muted-foreground">

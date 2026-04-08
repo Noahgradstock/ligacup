@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
+import { LogoWordmark } from "@/components/logo-wordmark";
 
 type Privacy = "private" | "public";
 
@@ -129,8 +130,8 @@ export default function NewLeaguePage() {
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/dashboard" className="font-bold text-xl tracking-tight">
-          Ligacup<span className="text-primary">.se</span>
+        <Link href="/dashboard" className="text-xl">
+          <LogoWordmark />
         </Link>
         <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
           ← Tillbaka
