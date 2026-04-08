@@ -77,6 +77,7 @@ export const matches = pgTable(
     index("matches_tournament_scheduled_idx").on(t.tournamentId, t.scheduledAt),
     index("matches_round_idx").on(t.roundId),
     index("matches_unconfirmed_idx").on(t.isResultConfirmed),
+    uniqueIndex("matches_tournament_match_number_idx").on(t.tournamentId, t.matchNumber),
   ]
 );
 
