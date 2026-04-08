@@ -4,47 +4,52 @@ import { LogoWordmark } from "@/components/logo-wordmark";
 
 export default function LandingPage() {
   return (
-    <main className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen bg-slate-950 text-white">
+
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
         <span className="text-xl">
           <LogoWordmark />
         </span>
         <div className="flex items-center gap-3">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm">Logga in</Button>
+            <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
+              Logga in
+            </Button>
           </Link>
           <Link href="/league/new">
-            <Button size="sm">Kom igång</Button>
+            <Button size="sm" className="bg-yellow-400 text-slate-950 hover:bg-yellow-300 font-bold border-0">
+              Kom igång
+            </Button>
           </Link>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6">
-        <div className="inline-flex items-center gap-2 bg-secondary text-muted-foreground text-sm px-3 py-1 rounded-full border border-border">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <div className="inline-flex items-center gap-2 bg-slate-800 text-slate-300 text-sm px-3 py-1 rounded-full border border-slate-700">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           VM 2026 börjar 11 juni — 10 veckor kvar
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-2xl leading-tight">
           Tipsa VM 2026 med{" "}
-          <span className="text-primary">dina vänner</span>
+          <span className="text-yellow-400">dina vänner</span>
         </h1>
 
-        <p className="text-muted-foreground text-lg max-w-xl">
+        <p className="text-slate-400 text-lg max-w-xl">
           Skapa ett privat tipslag, förutsäg alla matcher, och se vem som har koll på fotboll.
           Gratis. Inga insatser — bara äran.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Link href="/league/new">
-            <Button size="lg" className="text-base px-8">
+            <Button size="lg" className="text-base px-8 bg-yellow-400 text-slate-950 hover:bg-yellow-300 font-bold border-0">
               Skapa tipslag gratis
             </Button>
           </Link>
           <Link href="/join">
-            <Button size="lg" variant="outline" className="text-base px-8">
+            <Button size="lg" variant="outline" className="text-base px-8 border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 bg-transparent">
               Gå med i ett lag
             </Button>
           </Link>
@@ -52,9 +57,9 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="border-t border-border px-6 py-16">
+      <section className="border-t border-slate-800 bg-slate-900 px-6 py-16">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-10">Hur funkar det?</h2>
+          <h2 className="text-2xl font-bold text-center mb-10 text-white">Hur funkar det?</h2>
           <div className="grid sm:grid-cols-3 gap-8">
             {[
               {
@@ -74,11 +79,11 @@ export default function LandingPage() {
               },
             ].map((item) => (
               <div key={item.step} className="flex flex-col gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                <div className="w-9 h-9 rounded-full bg-yellow-400 text-slate-950 flex items-center justify-center font-bold text-sm">
                   {item.step}
                 </div>
-                <h3 className="font-semibold text-lg">{item.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
+                <h3 className="font-semibold text-lg text-white">{item.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -86,9 +91,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-6 text-center text-muted-foreground text-xs">
+      <footer className="border-t border-slate-800 px-6 py-6 text-center text-slate-500 text-xs">
         © 2026 Ligacup.se — Ett tipsspel för fotbollsfans. Inga insatser hanteras av plattformen.
       </footer>
+
     </main>
   );
 }
