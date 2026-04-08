@@ -14,7 +14,7 @@ import {
 import { BracketView } from "@/components/bracket-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
-import { computeGroupStandings } from "@/lib/predictor/standings";
+import { computeGroupStandings, rankThirdPlacedTeams, assignThirdsToSlots } from "@/lib/predictor/standings";
 
 function toFlag(code: string | null | undefined) {
   if (!code) return "🏳";
@@ -196,7 +196,9 @@ export default async function BracketPage({
       byGroup.get(r.groupName)!.push(r);
     }
 
-    // Compute standings per group → populate slot map
+    // Compute standings per group → populate slot map + collect all thirds
+    const allThirds: Array<{ group: string; team: { name: string; flag: string; played: number; won: number; drawn: number; lost: number; gf: number; ga: number; pts: number } }> = [];
+
     for (const [groupName, gMatches] of byGroup.entries()) {
       const standings = computeGroupStandings(
         gMatches.map((m) => ({
@@ -213,12 +215,20 @@ export default async function BracketPage({
 
       if (standings[0]) slotTeamMap.set(`1${groupName}`, standings[0]);
       if (standings[1]) slotTeamMap.set(`2${groupName}`, standings[1]);
-      if (standings[2]) slotTeamMap.set(`3${groupName}`, standings[2]);
+      if (standings[2]) allThirds.push({ group: groupName, team: standings[2] });
       if (standings[3]) slotTeamMap.set(`4${groupName}`, standings[3]);
     }
 
-    // DEBUG — ta bort efter felsökning
-    console.log("[bracket] groupRows:", groupRows.length, "groupPreds:", groupPreds.length, "slotTeamMap keys:", [...slotTeamMap.keys()]);
+    // Rank the 12 third-placed teams, take the best 8, assign to bracket slots
+    const ranked = rankThirdPlacedTeams(allThirds);
+    const top8 = ranked.slice(0, 8);
+    const qualifyingGroups = top8.map((t) => t.group);
+    const slotToGroup = assignThirdsToSlots(qualifyingGroups);
+
+    for (const [slot, group] of slotToGroup.entries()) {
+      const entry = top8.find((t) => t.group === group);
+      if (entry) slotTeamMap.set(slot, entry.team);
+    }
   }
 
   // ── Load knockout rounds and matches ──────────────────────────────────────

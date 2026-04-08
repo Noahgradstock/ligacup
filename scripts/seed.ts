@@ -364,25 +364,25 @@ async function main() {
     const fin  = roundByKnockout["FINAL"];
 
     const knockoutMatchRows = [
-      // ── Round of 32 (16 matches) ──
-      // Group winners vs runners-up across bracket halves
-      { roundId: r32.id, matchNumber: 73,  scheduledAt: new Date("2026-06-28T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1A", awaySlot: "2B" }) },
-      { roundId: r32.id, matchNumber: 74,  scheduledAt: new Date("2026-06-28T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1C", awaySlot: "2D" }) },
-      { roundId: r32.id, matchNumber: 75,  scheduledAt: new Date("2026-06-29T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1E", awaySlot: "2F" }) },
-      { roundId: r32.id, matchNumber: 76,  scheduledAt: new Date("2026-06-29T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1G", awaySlot: "2H" }) },
-      { roundId: r32.id, matchNumber: 77,  scheduledAt: new Date("2026-06-30T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1I", awaySlot: "2J" }) },
-      { roundId: r32.id, matchNumber: 78,  scheduledAt: new Date("2026-06-30T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1K", awaySlot: "2L" }) },
-      { roundId: r32.id, matchNumber: 79,  scheduledAt: new Date("2026-07-01T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1B", awaySlot: "2A" }) },
-      { roundId: r32.id, matchNumber: 80,  scheduledAt: new Date("2026-07-01T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1D", awaySlot: "2C" }) },
-      { roundId: r32.id, matchNumber: 81,  scheduledAt: new Date("2026-07-02T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1F", awaySlot: "2E" }) },
-      { roundId: r32.id, matchNumber: 82,  scheduledAt: new Date("2026-07-02T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1H", awaySlot: "2G" }) },
-      { roundId: r32.id, matchNumber: 83,  scheduledAt: new Date("2026-07-03T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1J", awaySlot: "2I" }) },
-      { roundId: r32.id, matchNumber: 84,  scheduledAt: new Date("2026-07-03T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1L", awaySlot: "2K" }) },
-      // 4 matches involving best 3rd-place teams (slots TBD after group stage)
-      { roundId: r32.id, matchNumber: 85,  scheduledAt: new Date("2026-07-04T15:00:00Z"), venue: JSON.stringify({ homeSlot: "3A/B/C", awaySlot: "2L" }) },
-      { roundId: r32.id, matchNumber: 86,  scheduledAt: new Date("2026-07-04T19:00:00Z"), venue: JSON.stringify({ homeSlot: "3D/E/F", awaySlot: "2J" }) },
-      { roundId: r32.id, matchNumber: 87,  scheduledAt: new Date("2026-07-05T15:00:00Z"), venue: JSON.stringify({ homeSlot: "3G/H/I", awaySlot: "2D" }) },
-      { roundId: r32.id, matchNumber: 88,  scheduledAt: new Date("2026-07-05T19:00:00Z"), venue: JSON.stringify({ homeSlot: "3J/K/L", awaySlot: "2B" }) },
+      // ── Round of 32 (16 matches) — official FIFA WC 2026 bracket ──
+      // Slot notation: 1X = winner group X, 2X = runner-up group X
+      // 3A/B/C/D/F = best 3rd-placed team from one of those groups (FIFA 495-scenarios)
+      { roundId: r32.id, matchNumber: 73,  scheduledAt: new Date("2026-06-28T15:00:00Z"), venue: JSON.stringify({ homeSlot: "2A",        awaySlot: "2B"        }) },
+      { roundId: r32.id, matchNumber: 74,  scheduledAt: new Date("2026-06-28T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1E",        awaySlot: "3A/B/C/D/F"}) },
+      { roundId: r32.id, matchNumber: 75,  scheduledAt: new Date("2026-06-29T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1F",        awaySlot: "2C"        }) },
+      { roundId: r32.id, matchNumber: 76,  scheduledAt: new Date("2026-06-29T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1C",        awaySlot: "2F"        }) },
+      { roundId: r32.id, matchNumber: 77,  scheduledAt: new Date("2026-06-30T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1I",        awaySlot: "3C/D/F/G/H"}) },
+      { roundId: r32.id, matchNumber: 78,  scheduledAt: new Date("2026-06-30T19:00:00Z"), venue: JSON.stringify({ homeSlot: "2E",        awaySlot: "2I"        }) },
+      { roundId: r32.id, matchNumber: 79,  scheduledAt: new Date("2026-07-01T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1A",        awaySlot: "3C/E/F/H/I"}) },
+      { roundId: r32.id, matchNumber: 80,  scheduledAt: new Date("2026-07-01T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1L",        awaySlot: "3E/H/I/J/K"}) },
+      { roundId: r32.id, matchNumber: 81,  scheduledAt: new Date("2026-07-02T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1D",        awaySlot: "3B/E/F/I/J"}) },
+      { roundId: r32.id, matchNumber: 82,  scheduledAt: new Date("2026-07-02T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1G",        awaySlot: "3A/E/H/I/J"}) },
+      { roundId: r32.id, matchNumber: 83,  scheduledAt: new Date("2026-07-03T15:00:00Z"), venue: JSON.stringify({ homeSlot: "2K",        awaySlot: "2L"        }) },
+      { roundId: r32.id, matchNumber: 84,  scheduledAt: new Date("2026-07-03T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1H",        awaySlot: "2J"        }) },
+      { roundId: r32.id, matchNumber: 85,  scheduledAt: new Date("2026-07-04T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1B",        awaySlot: "3E/F/G/I/J"}) },
+      { roundId: r32.id, matchNumber: 86,  scheduledAt: new Date("2026-07-04T19:00:00Z"), venue: JSON.stringify({ homeSlot: "1J",        awaySlot: "2H"        }) },
+      { roundId: r32.id, matchNumber: 87,  scheduledAt: new Date("2026-07-05T15:00:00Z"), venue: JSON.stringify({ homeSlot: "1K",        awaySlot: "3D/E/I/J/L"}) },
+      { roundId: r32.id, matchNumber: 88,  scheduledAt: new Date("2026-07-05T19:00:00Z"), venue: JSON.stringify({ homeSlot: "2D",        awaySlot: "2G"        }) },
 
       // ── Round of 16 (8 matches) ──
       { roundId: r16.id, matchNumber: 89,  scheduledAt: new Date("2026-07-07T15:00:00Z"), venue: JSON.stringify({ homeSlot: "VM73", awaySlot: "VM74" }) },
