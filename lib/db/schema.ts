@@ -209,6 +209,41 @@ export const tournamentTop3Predictions = pgTable(
   ]
 );
 
+export const bonusPredictions = pgTable(
+  "bonus_predictions",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    leagueId: uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+    tournamentId: uuid("tournament_id").notNull().references(() => tournaments.id),
+    type: text("type").notNull(), // "top_scorer" | "most_yellow_cards"
+    playerName: text("player_name"), // fritext för top_scorer
+    teamId: uuid("team_id").references(() => teams.id), // för most_yellow_cards
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("bonus_predictions_user_league_type_idx").on(t.userId, t.leagueId, t.type),
+    index("bonus_predictions_league_idx").on(t.leagueId),
+  ]
+);
+
+export const tournamentBonusResults = pgTable(
+  "tournament_bonus_results",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    tournamentId: uuid("tournament_id").notNull().references(() => tournaments.id),
+    type: text("type").notNull(), // "top_scorer" | "most_yellow_cards"
+    playerName: text("player_name"),
+    teamId: uuid("team_id").references(() => teams.id),
+    pointsAwarded: integer("points_awarded").notNull().default(5),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tournament_bonus_results_tournament_type_idx").on(t.tournamentId, t.type),
+  ]
+);
+
 // ---------------------------------------------------------------------------
 // Social
 // ---------------------------------------------------------------------------
@@ -274,3 +309,5 @@ export type Message = typeof messages.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Punishment = typeof punishments.$inferSelect;
 export type TournamentTop3Prediction = typeof tournamentTop3Predictions.$inferSelect;
+export type BonusPrediction = typeof bonusPredictions.$inferSelect;
+export type TournamentBonusResult = typeof tournamentBonusResults.$inferSelect;

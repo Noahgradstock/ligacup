@@ -23,10 +23,13 @@ export default async function LeagueLayout({
 
   if (!league) notFound();
 
+  const config = league.configJson as { features?: string[] } | null;
+  const features = config?.features ?? [];
+
   return (
     <div className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav backHref="/dashboard" backLabel="Dashboard" centerTitle={league.name} />
-      <LeagueSubNav leagueId={id} />
+      <LeagueSubNav leagueId={id} features={features} />
       <div className="flex-1 flex flex-col">{children}</div>
       <BottomNav />
     </div>

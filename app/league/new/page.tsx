@@ -62,6 +62,8 @@ export default function NewLeaguePage() {
   const [exactScore, setExactScore] = useState(3);
   const [correctWinner, setCorrectWinner] = useState(1);
   const [correctDraw, setCorrectDraw] = useState(1);
+  const [topScorerPoints, setTopScorerPoints] = useState(5);
+  const [yellowCardsPoints, setYellowCardsPoints] = useState(5);
 
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
@@ -110,7 +112,7 @@ export default function NewLeaguePage() {
         isPublic: privacy === "public",
         maxMembers,
         features: Array.from(enabledFeatures),
-        scoring: { exactScore, correctWinner, correctDraw },
+        scoring: { exactScore, correctWinner, correctDraw, topScorerPoints, yellowCardsPoints },
         bannerUrl,
       }),
     });
@@ -373,6 +375,48 @@ export default function NewLeaguePage() {
             ))}
           </div>
         </section>}
+
+        {/* ── 6: Bonus scoring — shown when top_scorer or most_yellow_cards is enabled ── */}
+        {(enabledFeatures.has("top_scorer") || enabledFeatures.has("most_yellow_cards")) && (
+          <section className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Poängregler — bonustips
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Hur många poäng ges för rätt bonus-gissning?
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              {enabledFeatures.has("top_scorer") && (
+                <div className="flex items-center gap-4 px-4 py-3 rounded-lg border border-border bg-card">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">👟 Skyttekung</p>
+                    <p className="text-xs text-muted-foreground">Rätt spelare som gör flest mål</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => setTopScorerPoints(Math.max(0, topScorerPoints - 1))} className="w-7 h-7 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors font-bold">−</button>
+                    <span className="w-8 text-center font-bold tabular-nums text-sm">{topScorerPoints}p</span>
+                    <button type="button" onClick={() => setTopScorerPoints(Math.min(20, topScorerPoints + 1))} className="w-7 h-7 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors font-bold">+</button>
+                  </div>
+                </div>
+              )}
+              {enabledFeatures.has("most_yellow_cards") && (
+                <div className="flex items-center gap-4 px-4 py-3 rounded-lg border border-border bg-card">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">🟨 Flest gula kort</p>
+                    <p className="text-xs text-muted-foreground">Rätt lag med flest gula kort totalt</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => setYellowCardsPoints(Math.max(0, yellowCardsPoints - 1))} className="w-7 h-7 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors font-bold">−</button>
+                    <span className="w-8 text-center font-bold tabular-nums text-sm">{yellowCardsPoints}p</span>
+                    <button type="button" onClick={() => setYellowCardsPoints(Math.min(20, yellowCardsPoints + 1))} className="w-7 h-7 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors font-bold">+</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {status === "error" && (
           <p className="text-sm text-destructive -mt-4">{errorMsg}</p>

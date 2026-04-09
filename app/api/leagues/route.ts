@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     isPublic?: boolean;
     maxMembers?: number;
     features?: string[];
-    scoring?: { exactScore: number; correctWinner: number; correctDraw: number };
+    scoring?: { exactScore: number; correctWinner: number; correctDraw: number; topScorerPoints?: number; yellowCardsPoints?: number };
     bannerUrl?: string | null;
   };
   try {
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     exactScore: Math.min(10, Math.max(0, body.scoring?.exactScore ?? 3)),
     correctWinner: Math.min(10, Math.max(0, body.scoring?.correctWinner ?? 1)),
     correctDraw: Math.min(10, Math.max(0, body.scoring?.correctDraw ?? 1)),
+    topScorerPoints: Math.min(20, Math.max(0, body.scoring?.topScorerPoints ?? 5)),
+    yellowCardsPoints: Math.min(20, Math.max(0, body.scoring?.yellowCardsPoints ?? 5)),
   };
 
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
