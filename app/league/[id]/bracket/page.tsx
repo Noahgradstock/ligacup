@@ -360,7 +360,7 @@ export default async function BracketPage({
       matchId: match.id,
       leagueId: id,
       roundType: round.roundType,
-      roundName: round.name,
+      roundName: ROUND_NAME_CORRECT[round.roundType] ?? round.name,
       matchNumber: match.matchNumber ?? 0,
       homeSlot: homeSlot ?? null,
       awaySlot: awaySlot ?? null,

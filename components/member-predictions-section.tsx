@@ -40,6 +40,7 @@ export type TeamOption = {
 type Props = {
   leagueId: string;
   currentUserId: string | null;
+  hasMatchScores: boolean;
   members: MemberInfo[];
   lockedMatches: LockedMatch[];
   top3: Top3Entry[];
@@ -90,6 +91,7 @@ function predClass(
 export function MemberPredictionsSection({
   leagueId,
   currentUserId,
+  hasMatchScores,
   members,
   lockedMatches,
   top3: initialTop3,
@@ -98,6 +100,7 @@ export function MemberPredictionsSection({
 }: Props) {
   const storageKey = `allas-tips-filter-${leagueId}`;
   const [filter, setFilter] = useState<Filter>(() => {
+    if (!hasMatchScores) return "top3";
     if (typeof window === "undefined") return "nearest";
     return (localStorage.getItem(storageKey) as Filter) ?? "nearest";
   });
@@ -162,10 +165,12 @@ export function MemberPredictionsSection({
   const myTop3 = top3.find((t) => t.userId === currentUserId);
   const hasMyTop3 = myTop3?.firstTeamId != null;
 
-  const topChips: { key: Filter; label: string }[] = [
-    { key: "top3", label: "VM Top 3" },
-    { key: "nearest", label: "Närmast" },
-  ];
+  const topChips: { key: Filter; label: string }[] = hasMatchScores
+    ? [
+        { key: "top3", label: "VM Top 3" },
+        { key: "nearest", label: "Närmast" },
+      ]
+    : [{ key: "top3", label: "VM Top 3" }];
 
   function Chip({ chipKey, label }: { chipKey: Filter; label: string }) {
     return (
@@ -198,7 +203,7 @@ export function MemberPredictionsSection({
         </div>
 
         {/* Group chips with label */}
-        {groups.length > 0 && (
+        {hasMatchScores && groups.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
               Grupper

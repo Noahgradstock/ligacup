@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 const BASE_TABS = [
   { id: "tabell", label: "Tabell", href: (id: string) => `/league/${id}` },
-  { id: "tippa", label: "Grupptips", href: (id: string) => `/league/${id}/predictions` },
-  { id: "slutspel", label: "Slutspel", href: (id: string) => `/league/${id}/bracket` },
-  { id: "bonustips", label: "Bonustips", href: (id: string) => `/league/${id}/bonus`, requiresFeature: true },
+  { id: "tippa", label: "Grupptips", href: (id: string) => `/league/${id}/predictions`, requiresMatchScores: true },
+  { id: "slutspel", label: "Slutspel", href: (id: string) => `/league/${id}/bracket`, requiresMatchScores: true },
+  { id: "bonustips", label: "Bonustips", href: (id: string) => `/league/${id}/bonus`, requiresBonusFeature: true },
   { id: "chatt", label: "Chatt", href: (id: string) => `/league/${id}/chat` },
 ];
 
@@ -15,6 +15,7 @@ const BONUS_FEATURES = ["top_scorer", "most_yellow_cards"];
 
 export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; features?: string[] }) {
   const pathname = usePathname();
+  const hasMatchScores = features.includes("match_scores");
   const hasBonusFeature = features.some((f) => BONUS_FEATURES.includes(f));
 
   function activeTab() {
@@ -26,7 +27,11 @@ export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; fe
   }
 
   const current = activeTab();
-  const tabs = BASE_TABS.filter((tab) => !tab.requiresFeature || hasBonusFeature);
+  const tabs = BASE_TABS.filter((tab) => {
+    if (tab.requiresMatchScores && !hasMatchScores) return false;
+    if (tab.requiresBonusFeature && !hasBonusFeature) return false;
+    return true;
+  });
 
   return (
     <div className="border-b border-border relative">
