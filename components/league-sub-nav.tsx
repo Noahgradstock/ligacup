@@ -30,31 +30,32 @@ export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; fe
 
   return (
     <div className="border-b border-border relative">
-      {/* Fade-out gradient on the right signals that tabs are scrollable */}
+      {/* Fade-out gradient on the right — signals scrollability on mobile */}
       <div
-        className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10"
-        style={{
-          background: "linear-gradient(to right, transparent, var(--background))",
-        }}
+        className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 sm:hidden"
+        style={{ background: "linear-gradient(to right, transparent, var(--background))" }}
         aria-hidden
       />
-      <div
-        className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-none px-4"
-        style={{ touchAction: "pan-x" }}
-      >
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tab.href(leagueId)}
-            className={`shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              current === tab.id
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
+      {/* Outer centering wrapper (desktop: center the tab strip, mobile: scroll) */}
+      <div className="max-w-2xl mx-auto w-full">
+        <div
+          className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-none px-4"
+          style={{ touchAction: "pan-x" }}
+        >
+          {tabs.map((tab) => (
+            <Link
+              key={tab.id}
+              href={tab.href(leagueId)}
+              className={`shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                current === tab.id
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
