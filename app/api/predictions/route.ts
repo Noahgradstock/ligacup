@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, matches, predictions, leagues, leagueMembers, tournamentRounds } from "@/lib/db/schema";
 
@@ -10,20 +10,20 @@ const NEXT_ROUND: Record<string, { nextType: string; prefix: string } | undefine
   SF: { nextType: "FINAL", prefix: "VS" },
 };
 
-// Find only the ONE match in the next round that directly uses this match's winner slot.
-// We do NOT recurse — deeper rounds keep their predictions and resolve via client-side cascade.
-async function getDirectDownstreamMatchId(
+// Recursively find ALL downstream match IDs that depend (directly or indirectly)
+// on this match's winner — e.g. if R32 winner changes, clear R16 + QF + SF + Final.
+async function getAllDownstreamMatchIds(
   matchNumber: number,
   roundType: string,
   tournamentId: string
-): Promise<string | null> {
+): Promise<{ id: string; matchNumber: number; roundType: string }[]> {
   const step = NEXT_ROUND[roundType];
-  if (!step) return null;
+  if (!step) return [];
 
   const slotKey = `${step.prefix}${matchNumber}`;
 
   const nextMatches = await db
-    .select({ id: matches.id, venue: matches.venue })
+    .select({ id: matches.id, venue: matches.venue, matchNumber: matches.matchNumber })
     .from(matches)
     .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
     .where(
@@ -43,7 +43,10 @@ async function getDirectDownstreamMatchId(
     }
   });
 
-  return hit?.id ?? null;
+  if (!hit || hit.matchNumber === null) return [];
+
+  const deeper = await getAllDownstreamMatchIds(hit.matchNumber, step.nextType, tournamentId);
+  return [{ id: hit.id, matchNumber: hit.matchNumber, roundType: step.nextType }, ...deeper];
 }
 
 export async function POST(request: Request) {
@@ -144,23 +147,23 @@ export async function POST(request: Request) {
     return new Response("Internal server error", { status: 500 });
   }
 
-  // Cascade: clear ONLY the one direct downstream match where the new team now appears.
-  // Deeper rounds (QF, SF, Final) keep their predictions and resolve via client-side cascade.
+  // Cascade: clear ALL downstream predictions that are invalidated by the winner change.
+  // E.g. changing an R32 winner clears R16 + QF + SF + Final predictions in one go.
   let invalidatedMatchIds: string[] = [];
   if (winnerChanged && matchWithRound.match.matchNumber !== null) {
     try {
-      const directId = await getDirectDownstreamMatchId(
+      const downstream = await getAllDownstreamMatchIds(
         matchWithRound.match.matchNumber,
         matchWithRound.roundType,
         matchWithRound.match.tournamentId
       );
-      if (directId) {
-        invalidatedMatchIds = [directId];
+      if (downstream.length > 0) {
+        invalidatedMatchIds = downstream.map((m) => m.id);
         await db.delete(predictions).where(
           and(
             eq(predictions.userId, user.id),
             eq(predictions.leagueId, leagueId),
-            eq(predictions.matchId, directId)
+            inArray(predictions.matchId, invalidatedMatchIds)
           )
         );
       }

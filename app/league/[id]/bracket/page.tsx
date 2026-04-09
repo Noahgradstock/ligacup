@@ -362,6 +362,9 @@ export default async function BracketPage({
       roundType: round.roundType,
       roundName: round.name,
       matchNumber: match.matchNumber ?? 0,
+      homeSlot: homeSlot ?? null,
+      awaySlot: awaySlot ?? null,
+      // Initial display names (server-resolved from slotTeamMap at load time)
       homeTeam: resolvedHome?.name ?? formatSlotLabel(homeSlot),
       homeFlag: resolvedHome?.flag ?? "🏳",
       awayTeam: resolvedAway?.name ?? formatSlotLabel(awaySlot),
@@ -377,6 +380,10 @@ export default async function BracketPage({
              (awayTeamName === null && !slotTeamMap.has(awaySlot ?? "")),
     };
   });
+
+  // Pass the server-computed slot→team map to the client so it can resolve team
+  // names for matches that depend on group predictions, without a page reload.
+  const initialSlotMap = Object.fromEntries(slotTeamMap);
 
   // Correct round names that were seeded with swapped labels (fixed in seed.ts,
   // but existing DB rows have the old wrong values until a re-seed is run).
@@ -397,7 +404,7 @@ export default async function BracketPage({
           Tippa vem som vinner varje match — lagen baseras på dina grupptips
         </p>
       </div>
-      <BracketView matches={matchData} rounds={rounds} leagueId={id} />
+      <BracketView matches={matchData} rounds={rounds} leagueId={id} initialSlotMap={initialSlotMap} />
     </div>
   );
 }

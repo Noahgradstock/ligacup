@@ -9,6 +9,8 @@ type BracketMatch = {
   roundType: string;
   roundName: string;
   matchNumber: number;
+  homeSlot: string | null;
+  awaySlot: string | null;
   homeTeam: string;
   homeFlag: string;
   awayTeam: string;
@@ -32,6 +34,9 @@ type Props = {
   matches: BracketMatch[];
   rounds: RoundMeta[];
   leagueId: string;
+  // Server-computed slot→team map (from group predictions at load time).
+  // Keys like "1A", "VM73", "VK97", "VS101" → { name, flag }
+  initialSlotMap: Record<string, { name: string; flag: string }>;
 };
 
 // Compact labels for the bracket overview column headers (space is tight)
@@ -45,26 +50,21 @@ const ROUND_COMPACT: Record<string, string> = {
 
 const SESSION_KEY = "bracket-active-round";
 
-// Resolve "V. match N" / "V. kvartsfinal N" / "V. semifinal N" labels by looking
-// up the predicted winner of that match number in the provided map.
-function resolveTeam(
-  name: string,
-  flag: string,
-  winnerMap: Map<number, { name: string; flag: string }>
-): { name: string; flag: string } {
-  const m = name.match(/V\.\s+\w+\s+(\d+)/);
-  if (m) {
-    const winner = winnerMap.get(Number(m[1]));
-    if (winner) return winner;
-  }
-  return { name, flag };
+// Slot-key prefixes that map match winners to the next round's venue slots:
+//   R32/R16 winners → "VM{matchNumber}"
+//   QF winners      → "VK{matchNumber}"
+//   SF winners      → "VS{matchNumber}"
+function winnerSlotKey(roundType: string, matchNumber: number): string {
+  if (roundType === "QF") return `VK${matchNumber}`;
+  if (roundType === "SF") return `VS${matchNumber}`;
+  return `VM${matchNumber}`;
 }
 
-function isTbdName(name: string) {
-  return /^V\./.test(name) || name === "TBD";
+function isTbdSlot(slot: string | null, slotMap: Map<string, { name: string; flag: string }>): boolean {
+  return slot !== null && !slotMap.has(slot);
 }
 
-export function BracketView({ matches, rounds, leagueId }: Props) {
+export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props) {
   const [activeRound, setActiveRound] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem(SESSION_KEY);
@@ -109,42 +109,44 @@ export function BracketView({ matches, rounds, leagueId }: Props) {
     }
   }
 
-  // Client-side winner derivation: process matches in matchNumber order so
-  // R32 winners cascade into R16, R16 winners into QF, etc.
-  // This mirrors the server-side logic in bracket/page.tsx but runs locally,
-  // meaning teams update the moment a prediction is saved.
-  const winnerByMatchNumber = useMemo(() => {
-    const map = new Map<number, { name: string; flag: string }>();
+  // Build a live slot→team map by starting from the server-computed group slot map
+  // and layering in winners derived from the user's current bracket predictions.
+  // Matches are processed in matchNumber order so R32 feeds R16 feeds QF etc.
+  // This runs purely client-side so team names update the instant a tip is saved.
+  const slotMap = useMemo(() => {
+    const map = new Map<string, { name: string; flag: string }>(
+      Object.entries(initialSlotMap)
+    );
     const sorted = [...matches].sort((a, b) => a.matchNumber - b.matchNumber);
     for (const m of sorted) {
       if (!m.matchNumber) continue;
       const pred = predMap.get(m.matchId);
       if (!pred) continue;
-      const home = resolveTeam(m.homeTeam, m.homeFlag, map);
-      const away = resolveTeam(m.awayTeam, m.awayFlag, map);
+      const home = m.homeSlot ? (map.get(m.homeSlot) ?? null) : { name: m.homeTeam, flag: m.homeFlag };
+      const away = m.awaySlot ? (map.get(m.awaySlot) ?? null) : { name: m.awayTeam, flag: m.awayFlag };
       const winner = pred.home >= pred.away ? home : away;
-      if (!isTbdName(winner.name)) {
-        map.set(m.matchNumber, winner);
+      if (winner) {
+        map.set(winnerSlotKey(m.roundType, m.matchNumber), winner);
       }
     }
     return map;
-  }, [matches, predMap]);
+  }, [matches, predMap, initialSlotMap]);
 
-  // Apply client-side resolution to every match
+  // Apply slot resolution to every match for display
   const resolvedMatches = useMemo(() => {
     return matches.map((m) => {
-      const home = resolveTeam(m.homeTeam, m.homeFlag, winnerByMatchNumber);
-      const away = resolveTeam(m.awayTeam, m.awayFlag, winnerByMatchNumber);
+      const home = m.homeSlot ? (slotMap.get(m.homeSlot) ?? null) : { name: m.homeTeam, flag: m.homeFlag };
+      const away = m.awaySlot ? (slotMap.get(m.awaySlot) ?? null) : { name: m.awayTeam, flag: m.awayFlag };
       return {
         ...m,
-        homeTeam: home.name,
-        homeFlag: home.flag,
-        awayTeam: away.name,
-        awayFlag: away.flag,
-        isTbd: isTbdName(home.name) || isTbdName(away.name),
+        homeTeam: home?.name ?? m.homeTeam,
+        homeFlag: home?.flag ?? m.homeFlag,
+        awayTeam: away?.name ?? m.awayTeam,
+        awayFlag: away?.flag ?? m.awayFlag,
+        isTbd: isTbdSlot(m.homeSlot, slotMap) || isTbdSlot(m.awaySlot, slotMap),
       };
     });
-  }, [matches, winnerByMatchNumber]);
+  }, [matches, slotMap]);
 
   const activeMatches = resolvedMatches.filter((m) => m.roundType === activeRound);
   const activeRoundMeta = rounds.find((r) => r.roundType === activeRound);
