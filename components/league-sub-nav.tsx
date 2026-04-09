@@ -29,8 +29,19 @@ export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; fe
   const tabs = BASE_TABS.filter((tab) => !tab.requiresFeature || hasBonusFeature);
 
   return (
-    <div className="border-b border-border px-4 flex flex-col">
-      <div className="flex gap-0 overflow-x-auto scrollbar-none">
+    <div className="border-b border-border relative">
+      {/* Fade-out gradient on the right signals that tabs are scrollable */}
+      <div
+        className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10"
+        style={{
+          background: "linear-gradient(to right, transparent, var(--background))",
+        }}
+        aria-hidden
+      />
+      <div
+        className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-none px-4"
+        style={{ touchAction: "pan-x" }}
+      >
         {tabs.map((tab) => (
           <Link
             key={tab.id}
