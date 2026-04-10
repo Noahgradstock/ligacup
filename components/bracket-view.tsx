@@ -64,6 +64,18 @@ function isTbdSlot(slot: string | null, slotMap: Map<string, { name: string; fla
   return slot !== null && !slotMap.has(slot);
 }
 
+function slotLabel(slot: string | null): string {
+  if (!slot) return "TBD";
+  if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
+  if (slot.startsWith("VK")) return `V. kvartsfinal ${slot.slice(2)}`;
+  if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
+  if (/^[123][A-L]/.test(slot)) {
+    const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
+    return `${pos} ${slot.slice(1)}`;
+  }
+  return slot;
+}
+
 export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props) {
   const [activeRound, setActiveRound] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -126,10 +138,12 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       const away = m.awaySlot ? (slotMap.get(m.awaySlot) ?? null) : { name: m.awayTeam, flag: m.awayFlag };
       return {
         ...m,
-        homeTeam: home?.name ?? m.homeTeam,
-        homeFlag: home?.flag ?? m.homeFlag,
-        awayTeam: away?.name ?? m.awayTeam,
-        awayFlag: away?.flag ?? m.awayFlag,
+        // When a slot exists but is not yet resolved (TBD), show the slot label
+        // instead of the stale server-computed name from page load.
+        homeTeam: home?.name ?? (m.homeSlot ? slotLabel(m.homeSlot) : m.homeTeam),
+        homeFlag: home?.flag ?? (m.homeSlot ? "🏳" : m.homeFlag),
+        awayTeam: away?.name ?? (m.awaySlot ? slotLabel(m.awaySlot) : m.awayTeam),
+        awayFlag: away?.flag ?? (m.awaySlot ? "🏳" : m.awayFlag),
         isTbd: isTbdSlot(m.homeSlot, slotMap) || isTbdSlot(m.awaySlot, slotMap),
       };
     });
