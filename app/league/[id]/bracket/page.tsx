@@ -16,6 +16,7 @@ import {
 import { BracketView } from "@/components/bracket-view";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { calcPoints } from "@/lib/predictor/points";
+import { predWinnerIsHome } from "@/lib/predictor/winner";
 import { computeGroupStandings, rankThirdPlacedTeams, assignThirdsToSlots } from "@/lib/predictor/standings";
 
 function toFlag(code: string | null | undefined) {
@@ -286,7 +287,11 @@ export default async function BracketPage({
     .where(inArray(matches.roundId, roundIds))
     .orderBy(tournamentRounds.sequenceOrder, matches.matchNumber);
 
-  const predMap = new Map<string, { home: number; away: number }>();
+  const predMap = new Map<string, {
+    home: number; away: number;
+    homeET: number | null; awayET: number | null;
+    homePen: number | null; awayPen: number | null;
+  }>();
   if (dbUser && rows.length > 0) {
     const matchIds = rows.map((r) => r.match.id);
     const preds = await db
@@ -300,7 +305,14 @@ export default async function BracketPage({
         )
       );
     for (const p of preds) {
-      predMap.set(p.matchId, { home: p.homeScorePred, away: p.awayScorePred });
+      predMap.set(p.matchId, {
+        home: p.homeScorePred,
+        away: p.awayScorePred,
+        homeET: p.homeExtraTimePred,
+        awayET: p.awayExtraTimePred,
+        homePen: p.homePenaltyPred,
+        awayPen: p.awayPenaltyPred,
+      });
     }
   }
 
@@ -320,8 +332,9 @@ export default async function BracketPage({
         ? { name: awayTeamName, flag: toFlag(awayTeamCode) }
         : awaySlot ? (slotTeamMap.get(awaySlot) ?? null) : null;
 
-      // On draw: home team advances (knockout → extra time/penalties, home team by default)
-      const winner = pred.home >= pred.away ? resolvedHome : resolvedAway;
+      const winnerIsHome = predWinnerIsHome(pred);
+      if (winnerIsHome === null) continue; // draw with no ET/penalty result yet — slot stays TBD
+      const winner = winnerIsHome ? resolvedHome : resolvedAway;
       if (!winner) continue;
 
       // Slot key format used by the *next* round's venues (see seed.ts):
@@ -381,6 +394,10 @@ export default async function BracketPage({
       scheduledAt: match.scheduledAt.toISOString(),
       savedHome: pred?.home ?? null,
       savedAway: pred?.away ?? null,
+      savedHomeET: pred?.homeET ?? null,
+      savedAwayET: pred?.awayET ?? null,
+      savedHomePen: pred?.homePen ?? null,
+      savedAwayPen: pred?.awayPen ?? null,
       isLocked: now >= match.scheduledAt,
       actualHome: hasResult ? match.homeScore! : null,
       actualAway: hasResult ? match.awayScore! : null,

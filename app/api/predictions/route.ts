@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, matches, predictions, leagues, leagueMembers, tournamentRounds } from "@/lib/db/schema";
+import { predWinnerIsHome } from "@/lib/predictor/winner";
 
 const NEXT_ROUND: Record<string, { nextType: string; prefix: string } | undefined> = {
   ROUND_OF_32: { nextType: "ROUND_OF_16", prefix: "VM" },
@@ -49,6 +50,10 @@ async function getAllDownstreamMatchIds(
   return [{ id: hit.id, matchNumber: hit.matchNumber, roundType: step.nextType }, ...deeper];
 }
 
+function isNonNegInt(v: unknown): v is number {
+  return typeof v === "number" && Number.isInteger(v) && v >= 0;
+}
+
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
   if (!clerkId) {
@@ -56,7 +61,16 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  let body: { matchId: string; homeScorePred: number; awayScorePred: number; leagueId: string };
+  let body: {
+    matchId: string;
+    homeScorePred: number;
+    awayScorePred: number;
+    leagueId: string;
+    homeExtraTimePred?: number | null;
+    awayExtraTimePred?: number | null;
+    homePenaltyPred?: number | null;
+    awayPenaltyPred?: number | null;
+  };
   try {
     body = await request.json();
   } catch {
@@ -64,19 +78,46 @@ export async function POST(request: Request) {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const { matchId, homeScorePred, awayScorePred, leagueId } = body;
+  const {
+    matchId,
+    homeScorePred,
+    awayScorePred,
+    leagueId,
+    homeExtraTimePred = null,
+    awayExtraTimePred = null,
+    homePenaltyPred = null,
+    awayPenaltyPred = null,
+  } = body;
+
   if (
     typeof matchId !== "string" ||
     typeof leagueId !== "string" ||
-    typeof homeScorePred !== "number" ||
-    typeof awayScorePred !== "number" ||
-    homeScorePred < 0 ||
-    awayScorePred < 0 ||
-    !Number.isInteger(homeScorePred) ||
-    !Number.isInteger(awayScorePred)
+    !isNonNegInt(homeScorePred) ||
+    !isNonNegInt(awayScorePred)
   ) {
     console.error("[predictions] 400 Invalid input", { matchId, leagueId, homeScorePred, awayScorePred });
     return new Response("Invalid input", { status: 400 });
+  }
+
+  // Validate ET fields when provided
+  if (homeExtraTimePred !== null || awayExtraTimePred !== null) {
+    if (!isNonNegInt(homeExtraTimePred) || !isNonNegInt(awayExtraTimePred)) {
+      return new Response("Invalid extra time scores", { status: 400 });
+    }
+  }
+
+  // Validate penalty fields when provided
+  if (homePenaltyPred !== null || awayPenaltyPred !== null) {
+    if (!isNonNegInt(homePenaltyPred) || !isNonNegInt(awayPenaltyPred)) {
+      return new Response("Invalid penalty scores", { status: 400 });
+    }
+    if (homePenaltyPred === awayPenaltyPred) {
+      return new Response("Penalty shootout cannot end in a draw", { status: 400 });
+    }
+    // Penalties require ET to also be present
+    if (homeExtraTimePred === null || awayExtraTimePred === null) {
+      return new Response("Penalty scores require extra time scores", { status: 400 });
+    }
   }
 
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
@@ -130,17 +171,53 @@ export async function POST(request: Request) {
     )
     .limit(1);
 
-  const oldWinnerIsHome = oldPred ? oldPred.homeScorePred >= oldPred.awayScorePred : null;
-  const newWinnerIsHome = homeScorePred >= awayScorePred;
+  const oldWinnerIsHome = oldPred ? predWinnerIsHome({
+    home: oldPred.homeScorePred,
+    away: oldPred.awayScorePred,
+    homeET: oldPred.homeExtraTimePred,
+    awayET: oldPred.awayExtraTimePred,
+    homePen: oldPred.homePenaltyPred,
+    awayPen: oldPred.awayPenaltyPred,
+  }) : null;
+
+  const newWinnerIsHome = predWinnerIsHome({
+    home: homeScorePred,
+    away: awayScorePred,
+    homeET: homeExtraTimePred,
+    awayET: awayExtraTimePred,
+    homePen: homePenaltyPred,
+    awayPen: awayPenaltyPred,
+  });
+
+  // Cascade if: old had a definitive winner AND that winner differs from new
+  // (newWinnerIsHome === null counts as "different" — we no longer know who advances)
   const winnerChanged = oldWinnerIsHome !== null && oldWinnerIsHome !== newWinnerIsHome;
 
   try {
     await db
       .insert(predictions)
-      .values({ userId: user.id, matchId, leagueId, homeScorePred, awayScorePred })
+      .values({
+        userId: user.id,
+        matchId,
+        leagueId,
+        homeScorePred,
+        awayScorePred,
+        homeExtraTimePred,
+        awayExtraTimePred,
+        homePenaltyPred,
+        awayPenaltyPred,
+      })
       .onConflictDoUpdate({
         target: [predictions.userId, predictions.matchId, predictions.leagueId],
-        set: { homeScorePred, awayScorePred, updatedAt: new Date() },
+        set: {
+          homeScorePred,
+          awayScorePred,
+          homeExtraTimePred,
+          awayExtraTimePred,
+          homePenaltyPred,
+          awayPenaltyPred,
+          updatedAt: new Date(),
+        },
       });
   } catch (err) {
     console.error("[predictions] 500 DB error:", err);

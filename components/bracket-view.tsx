@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { MatchCard } from "@/components/match-card";
+import { predWinnerIsHome, type FullPred } from "@/lib/predictor/winner";
 
 type BracketMatch = {
   matchId: string;
@@ -18,6 +19,10 @@ type BracketMatch = {
   scheduledAt: string;
   savedHome: number | null;
   savedAway: number | null;
+  savedHomeET: number | null;
+  savedAwayET: number | null;
+  savedHomePen: number | null;
+  savedAwayPen: number | null;
   isLocked: boolean;
   actualHome: number | null;
   actualAway: number | null;
@@ -90,19 +95,26 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
     sessionStorage.setItem(SESSION_KEY, roundType);
   }
 
-  const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
-    const m = new Map<string, { home: number; away: number }>();
+  const [predMap, setPredMap] = useState<Map<string, FullPred>>(() => {
+    const m = new Map<string, FullPred>();
     for (const match of matches) {
       if (match.savedHome !== null && match.savedAway !== null) {
-        m.set(match.matchId, { home: match.savedHome, away: match.savedAway });
+        m.set(match.matchId, {
+          home: match.savedHome,
+          away: match.savedAway,
+          homeET: match.savedHomeET,
+          awayET: match.savedAwayET,
+          homePen: match.savedHomePen,
+          awayPen: match.savedAwayPen,
+        });
       }
     }
     return m;
   });
 
-  function handleSave(matchId: string, home: number, away: number, invalidatedMatchIds: string[]) {
+  function handleSave(matchId: string, pred: FullPred, invalidatedMatchIds: string[]) {
     setPredMap((prev) => {
-      const next = new Map(prev).set(matchId, { home, away });
+      const next = new Map(prev).set(matchId, pred);
       for (const id of invalidatedMatchIds) next.delete(id);
       return next;
     });
@@ -118,12 +130,14 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
     );
     const sorted = [...matches].sort((a, b) => a.matchNumber - b.matchNumber);
     for (const m of sorted) {
-      if (!m.matchNumber) continue;
+      if (m.matchNumber == null) continue;
       const pred = predMap.get(m.matchId);
       if (!pred) continue;
       const home = m.homeSlot ? (map.get(m.homeSlot) ?? null) : { name: m.homeTeam, flag: m.homeFlag };
       const away = m.awaySlot ? (map.get(m.awaySlot) ?? null) : { name: m.awayTeam, flag: m.awayFlag };
-      const winner = pred.home >= pred.away ? home : away;
+      const winnerIsHome = predWinnerIsHome(pred);
+      if (winnerIsHome === null) continue; // draw with no ET/penalty result — slot stays TBD
+      const winner = winnerIsHome ? home : away;
       if (winner) {
         map.set(winnerSlotKey(m.roundType, m.matchNumber), winner);
       }
@@ -230,26 +244,34 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
 
       {/* Match cards */}
       <div className="flex flex-col gap-3">
-        {activeMatches.map((m) => (
-          <MatchCard
-            key={m.matchId}
-            matchId={m.matchId}
-            leagueId={leagueId}
-            homeTeam={m.homeTeam}
-            homeFlag={m.homeFlag}
-            awayTeam={m.awayTeam}
-            awayFlag={m.awayFlag}
-            scheduledAt={m.scheduledAt}
-            groupName={m.roundName}
-            savedHome={predMap.get(m.matchId)?.home ?? null}
-            savedAway={predMap.get(m.matchId)?.away ?? null}
-            isLocked={m.isLocked}
-            actualHome={m.actualHome}
-            actualAway={m.actualAway}
-            pointsEarned={m.pointsEarned}
-            onSave={handleSave}
-          />
-        ))}
+        {activeMatches.map((m) => {
+          const pred = predMap.get(m.matchId);
+          return (
+            <MatchCard
+              key={m.matchId}
+              matchId={m.matchId}
+              leagueId={leagueId}
+              homeTeam={m.homeTeam}
+              homeFlag={m.homeFlag}
+              awayTeam={m.awayTeam}
+              awayFlag={m.awayFlag}
+              scheduledAt={m.scheduledAt}
+              groupName={m.roundName}
+              savedHome={pred?.home ?? null}
+              savedAway={pred?.away ?? null}
+              savedHomeET={pred?.homeET ?? null}
+              savedAwayET={pred?.awayET ?? null}
+              savedHomePen={pred?.homePen ?? null}
+              savedAwayPen={pred?.awayPen ?? null}
+              isLocked={m.isLocked}
+              actualHome={m.actualHome}
+              actualAway={m.actualAway}
+              pointsEarned={m.pointsEarned}
+              isKnockout={true}
+              onSave={handleSave}
+            />
+          );
+        })}
         {activeMatches.length === 0 && (
           <p className="text-muted-foreground text-sm text-center py-8">
             Inga matcher i den här rundan.
@@ -304,7 +326,7 @@ function BracketOverview({
   rounds: RoundMeta[];
   activeRound: string;
   onSelectRound: (r: string) => void;
-  predMap: Map<string, { home: number; away: number }>;
+  predMap: Map<string, FullPred>;
 }) {
   if (rounds.length < 2) return null;
 

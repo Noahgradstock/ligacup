@@ -113,8 +113,8 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
     return m;
   });
 
-  function handleSave(matchId: string, home: number, away: number) {
-    setPredMap((prev) => new Map(prev).set(matchId, { home, away }));
+  function handleSave(matchId: string, pred: { home: number; away: number }) {
+    setPredMap((prev) => new Map(prev).set(matchId, { home: pred.home, away: pred.away }));
   }
 
   useSSE({
