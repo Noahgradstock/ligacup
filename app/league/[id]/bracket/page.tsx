@@ -95,16 +95,18 @@ export default async function BracketPage({
 
     const totalGroupMatches = groupMatchRows.length;
 
-    const userGroupPreds = await db
-      .select({ matchId: predictions.matchId })
-      .from(predictions)
-      .where(
-        and(
-          inArray(predictions.matchId, groupMatchRows.map((m) => m.id)),
-          eq(predictions.leagueId, id),
-          eq(predictions.userId, dbUser.id)
-        )
-      );
+    const userGroupPreds = totalGroupMatches > 0
+      ? await db
+          .select({ matchId: predictions.matchId })
+          .from(predictions)
+          .where(
+            and(
+              inArray(predictions.matchId, groupMatchRows.map((m) => m.id)),
+              eq(predictions.leagueId, id),
+              eq(predictions.userId, dbUser.id)
+            )
+          )
+      : [];
 
     const tippedCount = userGroupPreds.length;
     const tippedIds = new Set(userGroupPreds.map((p) => p.matchId));
@@ -333,6 +335,13 @@ export default async function BracketPage({
     }
   }
 
+  // Correct round names that were seeded with swapped labels (fixed in seed.ts,
+  // but existing DB rows have the old wrong values until a re-seed is run).
+  const ROUND_NAME_CORRECT: Record<string, string> = {
+    ROUND_OF_32: "Sextondelsfinaler",
+    ROUND_OF_16: "Åttondelsfinaler",
+  };
+
   const now = new Date();
   const defaultRules = { pointsExactScore: 3, pointsCorrectWinner: 1, pointsCorrectDraw: 1 };
 
@@ -385,12 +394,6 @@ export default async function BracketPage({
   // names for matches that depend on group predictions, without a page reload.
   const initialSlotMap = Object.fromEntries(slotTeamMap);
 
-  // Correct round names that were seeded with swapped labels (fixed in seed.ts,
-  // but existing DB rows have the old wrong values until a re-seed is run).
-  const ROUND_NAME_CORRECT: Record<string, string> = {
-    ROUND_OF_32: "Sextondelsfinaler",
-    ROUND_OF_16: "Åttondelsfinaler",
-  };
   const rounds = knockoutRounds.map((r) => ({
     roundType: r.roundType,
     roundName: ROUND_NAME_CORRECT[r.roundType] ?? r.name,
