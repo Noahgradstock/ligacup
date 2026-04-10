@@ -227,7 +227,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
         ) : (
           <>
             {filtered.map((m) => (
-              <MatchCard key={m.matchId} {...m} groupName={`Grupp ${m.groupName}`} leagueId={leagueId} onSave={handleSave} />
+              <MatchCard key={m.matchId} matchId={m.matchId} leagueId={leagueId} homeTeam={m.homeTeam} homeFlag={m.homeFlag} awayTeam={m.awayTeam} awayFlag={m.awayFlag} scheduledAt={m.scheduledAt} groupName={`Grupp ${m.groupName}`} savedHome={predMap.get(m.matchId)?.home ?? null} savedAway={predMap.get(m.matchId)?.away ?? null} isLocked={m.isLocked} actualHome={m.actualHome} actualAway={m.actualAway} pointsEarned={m.pointsEarned} onSave={handleSave} />
             ))}
             {filtered.length > 0 && (
               <GroupStandings groupMatches={filtered} predMap={predMap} />
