@@ -15,8 +15,8 @@ type MatchRow = {
   awayFlag: string;
   scheduledAt: string;
   groupName: string;
-  existingHome: number | null;
-  existingAway: number | null;
+  savedHome: number | null;
+  savedAway: number | null;
   isLocked: boolean;
   actualHome: number | null;
   actualAway: number | null;
@@ -106,8 +106,8 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
   const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
     const m = new Map<string, { home: number; away: number }>();
     for (const match of matches) {
-      if (match.existingHome !== null && match.existingAway !== null) {
-        m.set(match.matchId, { home: match.existingHome, away: match.existingAway });
+      if (match.savedHome !== null && match.savedAway !== null) {
+        m.set(match.matchId, { home: match.savedHome, away: match.savedAway });
       }
     }
     return m;
@@ -207,7 +207,7 @@ export function PredictionsView({ matches, groups, leagueId }: Props) {
                   {label}
                 </p>
                 {dayMatches.map((m) => (
-                  <MatchCard key={m.matchId} {...m} groupName={`Grupp ${m.groupName}`} leagueId={leagueId} onSave={handleSave} />
+                  <MatchCard key={m.matchId} matchId={m.matchId} leagueId={leagueId} homeTeam={m.homeTeam} homeFlag={m.homeFlag} awayTeam={m.awayTeam} awayFlag={m.awayFlag} scheduledAt={m.scheduledAt} groupName={`Grupp ${m.groupName}`} savedHome={predMap.get(m.matchId)?.home ?? null} savedAway={predMap.get(m.matchId)?.away ?? null} isLocked={m.isLocked} actualHome={m.actualHome} actualAway={m.actualAway} pointsEarned={m.pointsEarned} onSave={handleSave} />
                 ))}
               </div>
             );

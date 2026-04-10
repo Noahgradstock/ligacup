@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Props = {
   matchId: string;
@@ -11,8 +11,8 @@ type Props = {
   awayFlag: string;
   scheduledAt: string;
   groupName: string;
-  existingHome: number | null;
-  existingAway: number | null;
+  savedHome: number | null;
+  savedAway: number | null;
   isLocked: boolean;
   actualHome: number | null;
   actualAway: number | null;
@@ -44,27 +44,32 @@ export function MatchCard({
   awayFlag,
   scheduledAt,
   groupName,
-  existingHome,
-  existingAway,
+  savedHome,
+  savedAway,
   isLocked,
   actualHome,
   actualAway,
   pointsEarned,
   onSave,
 }: Props) {
-  const [home, setHome] = useState(existingHome?.toString() ?? "");
-  const [away, setAway] = useState(existingAway?.toString() ?? "");
-  const [savedHome, setSavedHome] = useState(existingHome?.toString() ?? "");
-  const [savedAway, setSavedAway] = useState(existingAway?.toString() ?? "");
+  const [home, setHome] = useState(savedHome?.toString() ?? "");
+  const [away, setAway] = useState(savedAway?.toString() ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
-    existingHome !== null ? "saved" : "idle"
+    savedHome !== null ? "saved" : "idle"
   );
   const [showOthers, setShowOthers] = useState(false);
   const [others, setOthers] = useState<MemberPrediction[] | null>(null);
   const [loadingOthers, setLoadingOthers] = useState(false);
 
-  const hasPrediction = existingHome !== null || savedHome !== "";
-  const dirty = home !== savedHome || away !== savedAway;
+  // Sync draft inputs when parent clears or updates this prediction (e.g. cascade invalidation)
+  useEffect(() => {
+    setHome(savedHome?.toString() ?? "");
+    setAway(savedAway?.toString() ?? "");
+    setStatus(savedHome !== null ? "saved" : "idle");
+  }, [savedHome, savedAway]);
+
+  const hasPrediction = savedHome !== null;
+  const dirty = home !== (savedHome?.toString() ?? "") || away !== (savedAway?.toString() ?? "");
 
   async function save() {
     const h = parseInt(home, 10);
@@ -80,8 +85,6 @@ export function MatchCard({
           body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
         });
         if (res.ok) {
-          setSavedHome(home);
-          setSavedAway(away);
           setStatus("saved");
           const data = await res.json();
           onSave?.(matchId, h, a, data.invalidatedMatchIds ?? []);
@@ -174,7 +177,7 @@ export function MatchCard({
               )}
               {hasPrediction && (
                 <span className="text-xs font-mono tabular-nums text-muted-foreground">
-                  Ditt tips: {existingHome}–{existingAway}
+                  Ditt tips: {savedHome}–{savedAway}
                 </span>
               )}
               {!hasPrediction && (

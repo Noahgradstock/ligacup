@@ -16,8 +16,8 @@ type BracketMatch = {
   awayTeam: string;
   awayFlag: string;
   scheduledAt: string;
-  existingHome: number | null;
-  existingAway: number | null;
+  savedHome: number | null;
+  savedAway: number | null;
   isLocked: boolean;
   actualHome: number | null;
   actualAway: number | null;
@@ -81,18 +81,12 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
   const [predMap, setPredMap] = useState<Map<string, { home: number; away: number }>>(() => {
     const m = new Map<string, { home: number; away: number }>();
     for (const match of matches) {
-      if (match.existingHome !== null && match.existingAway !== null) {
-        m.set(match.matchId, { home: match.existingHome, away: match.existingAway });
+      if (match.savedHome !== null && match.savedAway !== null) {
+        m.set(match.matchId, { home: match.savedHome, away: match.savedAway });
       }
     }
     return m;
   });
-
-  // Tracks how many times each match has been cleared via invalidation.
-  // Incrementing the count changes the MatchCard key → React unmounts + remounts
-  // the card with existingHome=null, so it shows as blank/unsaved immediately
-  // (consistent with the DB record having been deleted).
-  const [matchBumpCount, setMatchBumpCount] = useState<Map<string, number>>(new Map());
 
   function handleSave(matchId: string, home: number, away: number, invalidatedMatchIds: string[]) {
     setPredMap((prev) => {
@@ -100,13 +94,6 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       for (const id of invalidatedMatchIds) next.delete(id);
       return next;
     });
-    if (invalidatedMatchIds.length > 0) {
-      setMatchBumpCount((prev) => {
-        const next = new Map(prev);
-        for (const id of invalidatedMatchIds) next.set(id, (next.get(id) ?? 0) + 1);
-        return next;
-      });
-    }
   }
 
   // Build a live slot→team map by starting from the server-computed group slot map
@@ -229,30 +216,26 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
 
       {/* Match cards */}
       <div className="flex flex-col gap-3">
-        {activeMatches.map((m) => {
-          const bumpCount = matchBumpCount.get(m.matchId) ?? 0;
-          const isCleared = bumpCount > 0 && !predMap.has(m.matchId);
-          return (
-            <MatchCard
-              key={`${m.matchId}-${bumpCount}`}
-              matchId={m.matchId}
-              leagueId={leagueId}
-              homeTeam={m.homeTeam}
-              homeFlag={m.homeFlag}
-              awayTeam={m.awayTeam}
-              awayFlag={m.awayFlag}
-              scheduledAt={m.scheduledAt}
-              groupName={m.roundName}
-              existingHome={isCleared ? null : m.existingHome}
-              existingAway={isCleared ? null : m.existingAway}
-              isLocked={m.isLocked}
-              actualHome={m.actualHome}
-              actualAway={m.actualAway}
-              pointsEarned={m.pointsEarned}
-              onSave={handleSave}
-            />
-          );
-        })}
+        {activeMatches.map((m) => (
+          <MatchCard
+            key={m.matchId}
+            matchId={m.matchId}
+            leagueId={leagueId}
+            homeTeam={m.homeTeam}
+            homeFlag={m.homeFlag}
+            awayTeam={m.awayTeam}
+            awayFlag={m.awayFlag}
+            scheduledAt={m.scheduledAt}
+            groupName={m.roundName}
+            savedHome={predMap.get(m.matchId)?.home ?? null}
+            savedAway={predMap.get(m.matchId)?.away ?? null}
+            isLocked={m.isLocked}
+            actualHome={m.actualHome}
+            actualAway={m.actualAway}
+            pointsEarned={m.pointsEarned}
+            onSave={handleSave}
+          />
+        ))}
         {activeMatches.length === 0 && (
           <p className="text-muted-foreground text-sm text-center py-8">
             Inga matcher i den här rundan.
