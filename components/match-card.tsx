@@ -52,8 +52,15 @@ export function MatchCard({
   pointsEarned,
   onSave,
 }: Props) {
+  // Draft inputs — what the user is currently typing
   const [home, setHome] = useState(savedHome?.toString() ?? "");
   const [away, setAway] = useState(savedAway?.toString() ?? "");
+
+  // Last committed value — updated optimistically on save AND reset by parent on cascade clear.
+  // Using this (not the prop directly) lets the card go green immediately after save.
+  const [committedHome, setCommittedHome] = useState<number | null>(savedHome);
+  const [committedAway, setCommittedAway] = useState<number | null>(savedAway);
+
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     savedHome !== null ? "saved" : "idle"
   );
@@ -61,15 +68,18 @@ export function MatchCard({
   const [others, setOthers] = useState<MemberPrediction[] | null>(null);
   const [loadingOthers, setLoadingOthers] = useState(false);
 
-  // Sync draft inputs when parent clears or updates this prediction (e.g. cascade invalidation)
+  // When the parent changes savedHome/savedAway (e.g. cascade clears a downstream match),
+  // sync the local committed state and reset the draft inputs.
   useEffect(() => {
+    setCommittedHome(savedHome);
+    setCommittedAway(savedAway);
     setHome(savedHome?.toString() ?? "");
     setAway(savedAway?.toString() ?? "");
     setStatus(savedHome !== null ? "saved" : "idle");
   }, [savedHome, savedAway]);
 
-  const hasPrediction = savedHome !== null;
-  const dirty = home !== (savedHome?.toString() ?? "") || away !== (savedAway?.toString() ?? "");
+  const hasPrediction = committedHome !== null;
+  const dirty = home !== (committedHome?.toString() ?? "") || away !== (committedAway?.toString() ?? "");
 
   async function save() {
     const h = parseInt(home, 10);
@@ -85,6 +95,8 @@ export function MatchCard({
           body: JSON.stringify({ matchId, leagueId, homeScorePred: h, awayScorePred: a }),
         });
         if (res.ok) {
+          setCommittedHome(h);
+          setCommittedAway(a);
           setStatus("saved");
           const data = await res.json();
           onSave?.(matchId, h, a, data.invalidatedMatchIds ?? []);
@@ -177,7 +189,7 @@ export function MatchCard({
               )}
               {hasPrediction && (
                 <span className="text-xs font-mono tabular-nums text-muted-foreground">
-                  Ditt tips: {savedHome}–{savedAway}
+                  Ditt tips: {committedHome}–{committedAway}
                 </span>
               )}
               {!hasPrediction && (
