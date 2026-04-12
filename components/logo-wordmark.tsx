@@ -1,12 +1,7 @@
-/**
- * Ligacup wordmark — "Liga" medium + "cup" bold gold + ".se" muted.
- * "Liga" medium + "Cup" extrabold gold.
- */
 export function LogoWordmark() {
   return (
-    <span className="tracking-tight">
-      <span className="font-medium">Liga</span>
-      <span className="font-extrabold text-accent">Cup</span>
+    <span className="font-black text-xl" style={{ letterSpacing: "-0.06em" }}>
+      L<span className="text-accent" style={{ marginLeft: "0.01em" }}>C</span>
     </span>
   );
 }
