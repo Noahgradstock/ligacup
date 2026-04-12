@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, lt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -11,9 +11,14 @@ import {
   tournamentTop3Predictions,
   bonusPredictions,
   teams,
+  matches,
+  tournamentRounds,
+  predictions,
 } from "@/lib/db/schema";
 import { syncCurrentUser } from "@/lib/sync-user";
 import { CompareView } from "@/components/compare-view";
+import { MemberPredictionsSection } from "@/components/member-predictions-section";
+import type { Top3Entry } from "@/app/api/leagues/[id]/top3/route";
 
 function toFlag(code: string | null | undefined) {
   if (!code) return "🏳";
@@ -57,6 +62,7 @@ export default async function ComparePage({
   const features = config?.features ?? [];
   const hasTopScorer = features.includes("top_scorer");
   const hasYellowCards = features.includes("most_yellow_cards");
+  const hasMatchScores = features.includes("match_scores");
 
   // All active league members
   const members = await db
@@ -78,10 +84,13 @@ export default async function ComparePage({
   const top3Rows = await db
     .select({
       userId: tournamentTop3Predictions.userId,
+      firstTeamId: tournamentTop3Predictions.firstTeamId,
       firstTeamName: t1.name,
       firstTeamCode: t1.countryCode,
+      secondTeamId: tournamentTop3Predictions.secondTeamId,
       secondTeamName: t2.name,
       secondTeamCode: t2.countryCode,
+      thirdTeamId: tournamentTop3Predictions.thirdTeamId,
       thirdTeamName: t3.name,
       thirdTeamCode: t3.countryCode,
     })
@@ -96,6 +105,20 @@ export default async function ComparePage({
     first: r.firstTeamName ? { name: r.firstTeamName, flag: toFlag(r.firstTeamCode) } : null,
     second: r.secondTeamName ? { name: r.secondTeamName, flag: toFlag(r.secondTeamCode) } : null,
     third: r.thirdTeamName ? { name: r.thirdTeamName, flag: toFlag(r.thirdTeamCode) } : null,
+  }));
+
+  // Top3 in Top3Entry shape (with IDs) for MemberPredictionsSection edit form
+  const top3ForSection: Top3Entry[] = top3Rows.map((r) => ({
+    userId: r.userId,
+    firstTeamId: r.firstTeamId ?? null,
+    firstTeamName: r.firstTeamName ?? null,
+    firstTeamCode: r.firstTeamCode ?? null,
+    secondTeamId: r.secondTeamId ?? null,
+    secondTeamName: r.secondTeamName ?? null,
+    secondTeamCode: r.secondTeamCode ?? null,
+    thirdTeamId: r.thirdTeamId ?? null,
+    thirdTeamName: r.thirdTeamName ?? null,
+    thirdTeamCode: r.thirdTeamCode ?? null,
   }));
 
   // Bonus predictions
@@ -126,6 +149,114 @@ export default async function ComparePage({
     };
   });
 
+  // Locked group matches + allTeams (for MemberPredictionsSection)
+  let lockedMatches: {
+    matchId: string;
+    groupName: string | null;
+    scheduledAt: string;
+    homeTeamName: string;
+    homeTeamCode: string | null;
+    awayTeamName: string;
+    awayTeamCode: string | null;
+    isResultConfirmed: boolean;
+    homeScore: number | null;
+    awayScore: number | null;
+    predictions: { userId: string; home: number; away: number }[];
+  }[] = [];
+  let groups: string[] = [];
+  let allTeams: { id: string; name: string; countryCode: string | null }[] = [];
+
+  if (hasMatchScores) {
+    const homeTeam = alias(teams, "home_team");
+    const awayTeam = alias(teams, "away_team");
+    const now = new Date();
+
+    const lockedMatchRows = await db
+      .select({
+        matchId: matches.id,
+        groupName: matches.groupName,
+        scheduledAt: matches.scheduledAt,
+        homeTeamName: homeTeam.name,
+        homeTeamCode: homeTeam.countryCode,
+        awayTeamName: awayTeam.name,
+        awayTeamCode: awayTeam.countryCode,
+        isResultConfirmed: matches.isResultConfirmed,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+      .innerJoin(homeTeam, eq(matches.homeTeamId, homeTeam.id))
+      .innerJoin(awayTeam, eq(matches.awayTeamId, awayTeam.id))
+      .where(
+        and(
+          eq(matches.tournamentId, league.tournamentId),
+          eq(tournamentRounds.roundType, "GROUP"),
+          lt(matches.scheduledAt, now)
+        )
+      )
+      .orderBy(matches.scheduledAt);
+
+    const matchPredRows =
+      lockedMatchRows.length > 0
+        ? await db
+            .select({
+              matchId: predictions.matchId,
+              userId: predictions.userId,
+              homeScorePred: predictions.homeScorePred,
+              awayScorePred: predictions.awayScorePred,
+            })
+            .from(predictions)
+            .where(
+              and(
+                inArray(predictions.matchId, lockedMatchRows.map((r) => r.matchId)),
+                eq(predictions.leagueId, id)
+              )
+            )
+        : [];
+
+    const predsByMatch = new Map<string, { userId: string; home: number; away: number }[]>();
+    for (const p of matchPredRows) {
+      if (!predsByMatch.has(p.matchId)) predsByMatch.set(p.matchId, []);
+      predsByMatch.get(p.matchId)!.push({ userId: p.userId, home: p.homeScorePred, away: p.awayScorePred });
+    }
+
+    lockedMatches = lockedMatchRows.map((r) => ({
+      matchId: r.matchId,
+      groupName: r.groupName,
+      scheduledAt: r.scheduledAt.toISOString(),
+      homeTeamName: r.homeTeamName,
+      homeTeamCode: r.homeTeamCode,
+      awayTeamName: r.awayTeamName,
+      awayTeamCode: r.awayTeamCode,
+      isResultConfirmed: r.isResultConfirmed,
+      homeScore: r.homeScore,
+      awayScore: r.awayScore,
+      predictions: predsByMatch.get(r.matchId) ?? [],
+    }));
+
+    const allGroupRows = await db
+      .selectDistinct({ groupName: matches.groupName })
+      .from(matches)
+      .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+      .where(
+        and(
+          eq(matches.tournamentId, league.tournamentId),
+          eq(tournamentRounds.roundType, "GROUP")
+        )
+      );
+    groups = allGroupRows
+      .map((r) => r.groupName)
+      .filter((g): g is string => g !== null)
+      .sort();
+  } else {
+    // allTeams needed for Top 3 edit dropdown
+    allTeams = await db
+      .select({ id: teams.id, name: teams.name, countryCode: teams.countryCode })
+      .from(teams)
+      .orderBy(teams.name);
+  }
+
   return (
     <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
       <div>
@@ -146,6 +277,21 @@ export default async function ComparePage({
         bonus={bonus}
         hasTopScorer={hasTopScorer}
         hasYellowCards={hasYellowCards}
+      />
+      <MemberPredictionsSection
+        leagueId={id}
+        currentUserId={dbUser?.id ?? null}
+        hasMatchScores={hasMatchScores}
+        members={members.map((m) => ({
+          userId: m.userId,
+          displayName: m.displayName,
+          email: m.email,
+          avatarUrl: m.avatarUrl ?? null,
+        }))}
+        lockedMatches={lockedMatches}
+        top3={top3ForSection}
+        allTeams={allTeams}
+        groups={groups}
       />
     </div>
   );
