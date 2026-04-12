@@ -37,7 +37,17 @@ export type KnockoutMatchRow = {
   isResultConfirmed: boolean;
   homeScore: number | null;
   awayScore: number | null;
-  predictions: { userId: string; home: number; away: number }[];
+  predictions: {
+    userId: string;
+    home: number;
+    away: number;
+    homeET: number | null;
+    awayET: number | null;
+    homePen: number | null;
+    awayPen: number | null;
+    resolvedHome: { name: string; flag: string } | null;
+    resolvedAway: { name: string; flag: string } | null;
+  }[];
 };
 
 export type MemberInfo = {
@@ -186,6 +196,107 @@ function MatchCard({
                 <span className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded ${cls || "bg-secondary/60"}`}>
                   {pred.home}–{pred.away}
                 </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KnockoutMatchCard({
+  homeTeamName,
+  homeTeamCode,
+  awayTeamName,
+  awayTeamCode,
+  scheduledAt,
+  label,
+  isResultConfirmed,
+  homeScore,
+  awayScore,
+  preds,
+  currentUserId,
+  memberMap,
+}: {
+  homeTeamName: string;
+  homeTeamCode: string | null;
+  awayTeamName: string;
+  awayTeamCode: string | null;
+  scheduledAt: string;
+  label: string;
+  isResultConfirmed: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+  preds: KnockoutMatchRow["predictions"];
+  currentUserId: string | null;
+  memberMap: Map<string, MemberInfo>;
+}) {
+  const date = new Date(scheduledAt);
+  const isUpcoming = date.getTime() > Date.now();
+  const dateStr = date.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+  const timeStr = date.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-2 border-b border-border bg-secondary/30 flex items-center justify-between">
+        <span className="text-xs font-medium">
+          {toFlag(homeTeamCode)} {homeTeamName}{" "}
+          <span className="text-muted-foreground mx-1">vs</span>{" "}
+          {toFlag(awayTeamCode)} {awayTeamName}
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {isResultConfirmed && homeScore !== null ? (
+            <span className="text-xs font-bold text-primary">
+              {homeScore}–{awayScore}
+            </span>
+          ) : isUpcoming ? (
+            <span className="text-xs text-muted-foreground">{timeStr}</span>
+          ) : null}
+          <span className="text-xs text-muted-foreground">
+            {label ? `${label} · ` : ""}{dateStr}
+          </span>
+        </div>
+      </div>
+
+      <div className="divide-y divide-border">
+        {preds.length === 0 ? (
+          <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
+        ) : (
+          preds.map((pred) => {
+            const member = memberMap.get(pred.userId);
+            if (!member) return null;
+            const cls = predClass(pred.home, pred.away, homeScore, awayScore, isResultConfirmed);
+            const isMe = member.userId === currentUserId;
+            const hasET = pred.homeET !== null && pred.awayET !== null;
+            const hasPen = pred.homePen !== null && pred.awayPen !== null;
+            return (
+              <div
+                key={pred.userId}
+                className={`flex items-center justify-between px-3 py-2 gap-2 ${isMe ? "bg-primary/5" : ""}`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <MemberAvatar m={member} size={5} />
+                  <span className={`text-xs font-medium truncate ${isMe ? "text-primary" : ""}`}>
+                    {memberLabel(member)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {pred.resolvedHome && (
+                    <span className="text-sm leading-none" title={pred.resolvedHome.name}>
+                      {pred.resolvedHome.flag}
+                    </span>
+                  )}
+                  <span className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded ${cls || "bg-secondary/60"}`}>
+                    {pred.home}–{pred.away}
+                    {hasET && ` (f.t. ${pred.homeET}–${pred.awayET}${hasPen ? `, p. ${pred.homePen}–${pred.awayPen}` : ""})`}
+                  </span>
+                  {pred.resolvedAway && (
+                    <span className="text-sm leading-none" title={pred.resolvedAway.name}>
+                      {pred.resolvedAway.flag}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })
@@ -495,7 +606,7 @@ export function MemberPredictionsSection({
               </div>
             ) : (
               filteredKnockoutMatches.map((match) => (
-                <MatchCard
+                <KnockoutMatchCard
                   key={match.matchId}
                   homeTeamName={match.homeTeamName}
                   homeTeamCode={match.homeTeamCode}
