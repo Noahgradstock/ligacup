@@ -211,7 +211,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
               <button
                 key={r.roundType}
                 onClick={() => switchRound(r.roundType)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                className={`shrink-0 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
                   activeRound === r.roundType
                     ? allTipped
                       ? "bg-green-600 text-white"
@@ -221,12 +221,12 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}
               >
-                {r.roundName}
+                {ROUND_COMPACT[r.roundType] ?? r.roundName}
                 {allTipped && (
-                  <span className="text-xs leading-none">✓</span>
+                  <span className="text-[10px] leading-none">✓</span>
                 )}
                 {!allTipped && tipped > 0 && (
-                  <span className="text-xs leading-none opacity-70">{tipped}/{total}</span>
+                  <span className="text-[10px] leading-none opacity-70">{tipped}/{total}</span>
                 )}
               </button>
             );
@@ -366,45 +366,62 @@ function BracketOverview({
       <div className="overflow-x-auto">
         <div className="flex gap-0 min-w-max p-3">
           {rounds.map((r, ri) => {
-            const roundMatches = matches.filter(
+            const allRoundMatches = matches.filter(
               (m) => m.roundType === r.roundType || (r.roundType === "FINAL" && m.roundType === "THIRD_PLACE")
             );
+            const mainMatches = allRoundMatches.filter((m) => m.roundType !== "THIRD_PLACE");
+            const bronzeMatches = allRoundMatches.filter((m) => m.roundType === "THIRD_PLACE");
+            const isActive = r.roundType === activeRound;
+
+            function MatchMini({ m }: { m: BracketMatch }) {
+              const pred = predMap.get(m.matchId);
+              return (
+                <button
+                  onClick={() => onSelectRound(r.roundType)}
+                  className={`w-full px-2 py-1.5 rounded-lg border text-left transition-colors ${
+                    isActive
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-background hover:bg-secondary/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-1 text-[11px] leading-tight text-foreground">
+                    <span className="text-sm leading-none">{m.homeFlag}</span>
+                    <span className="truncate max-w-[50px] font-medium">{m.homeTeam}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] leading-tight mt-0.5 text-foreground">
+                    <span className="text-sm leading-none">{m.awayFlag}</span>
+                    <span className="truncate max-w-[50px] font-medium">{m.awayTeam}</span>
+                  </div>
+                  {pred && (
+                    <div className="mt-1 text-[10px] text-muted-foreground font-mono tabular-nums">
+                      {pred.home}–{pred.away}
+                    </div>
+                  )}
+                </button>
+              );
+            }
+
             return (
               <div key={r.roundType} className="flex items-center">
                 <div className="flex flex-col gap-2 min-w-[110px] px-1">
                   <p className="text-[10px] font-semibold text-center text-muted-foreground uppercase tracking-wide mb-1">
                     {ROUND_COMPACT[r.roundType] ?? r.roundName}
                   </p>
-                  {roundMatches.map((m) => {
-                    const pred = predMap.get(m.matchId);
-                    const hasPred = pred !== undefined;
-                    const isActive = r.roundType === activeRound;
-                    return (
-                      <button
-                        key={m.matchId}
-                        onClick={() => onSelectRound(r.roundType)}
-                        className={`w-full px-2 py-1.5 rounded-lg border text-left transition-colors ${
-                          isActive
-                            ? "border-primary/40 bg-primary/5"
-                            : "border-border bg-background hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1 text-[11px] leading-tight text-foreground">
-                          <span className="text-sm leading-none">{m.homeFlag}</span>
-                          <span className="truncate max-w-[50px] font-medium">{m.homeTeam}</span>
+                  {mainMatches.map((m) => <MatchMini key={m.matchId} m={m} />)}
+                  {bronzeMatches.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <div className="flex-1 h-px bg-border/60" />
+                        <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide whitespace-nowrap">3:e plats</span>
+                        <div className="flex-1 h-px bg-border/60" />
+                      </div>
+                      {bronzeMatches.map((m) => (
+                        <div key={m.matchId} className="opacity-60">
+                          <MatchMini m={m} />
                         </div>
-                        <div className="flex items-center gap-1 text-[11px] leading-tight mt-0.5 text-foreground">
-                          <span className="text-sm leading-none">{m.awayFlag}</span>
-                          <span className="truncate max-w-[50px] font-medium">{m.awayTeam}</span>
-                        </div>
-                        {hasPred && (
-                          <div className="mt-1 text-[10px] text-muted-foreground font-mono tabular-nums">
-                            {pred.home}–{pred.away}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
+                      ))}
+                    </>
+                  )}
                 </div>
                 {ri < rounds.length - 1 && (
                   <div className="flex flex-col items-center justify-center self-stretch px-1">
