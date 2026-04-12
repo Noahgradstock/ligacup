@@ -86,8 +86,36 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-6 text-center text-muted-foreground text-xs">
-        © 2026 Ligacup.se — Ett tipsspel för fotbollsfans. Inga insatser hanteras av plattformen.
+      <footer className="border-t border-border px-6 py-10">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+          {/* Brand */}
+          <div className="flex flex-col items-center sm:items-start gap-1.5">
+            <span className="text-lg">
+              <LogoWordmark />
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Tipsspel för VM 2026 — gratis, inga insatser.
+            </p>
+          </div>
+
+          {/* Links */}
+          <nav className="flex items-center gap-5 text-xs text-muted-foreground">
+            <Link href="/policy" className="hover:text-foreground transition-colors">
+              Integritetspolicy
+            </Link>
+            <Link href="/join" className="hover:text-foreground transition-colors">
+              Gå med i ett lag
+            </Link>
+            <Link href="/league/new" className="hover:text-foreground transition-colors">
+              Skapa tipslag
+            </Link>
+          </nav>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="max-w-4xl mx-auto mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
+          © 2026 Ligacup.se
+        </div>
       </footer>
     </main>
   );
