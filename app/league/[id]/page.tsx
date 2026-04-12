@@ -87,8 +87,27 @@ export default async function LeaguePage({
     return m.displayName ?? m.email.split("@")[0];
   }
 
-  const config = league.configJson as { features?: string[]; scoring?: object; entryFee?: number } | null;
+  const config = league.configJson as {
+    features?: string[];
+    scoring?: { exactScore?: number; correctWinner?: number; correctDraw?: number; topScorerPoints?: number; yellowCardsPoints?: number };
+    entryFee?: number;
+  } | null;
   const entryFee = config?.entryFee ?? null;
+  const features = config?.features ?? [];
+  const scoring = config?.scoring ?? {};
+
+  const FEATURE_LABELS: Record<string, string> = {
+    match_scores: "⚽ Matchresultat",
+    tournament_winner: "🏆 VM Top 3",
+    top_scorer: "👟 Skyttekung",
+    most_yellow_cards: "🟨 Flest gula kort",
+  };
+
+  const scoringParts: string[] = [];
+  if (scoring.exactScore != null) scoringParts.push(`Exakt: ${scoring.exactScore}p`);
+  if (scoring.correctWinner != null) scoringParts.push(`Rätt utgång: ${scoring.correctWinner}p`);
+  if (scoring.topScorerPoints != null && features.includes("top_scorer")) scoringParts.push(`Skyttekung: ${scoring.topScorerPoints}p`);
+  if (scoring.yellowCardsPoints != null && features.includes("most_yellow_cards")) scoringParts.push(`Gula kort: ${scoring.yellowCardsPoints}p`);
 
   return (
     <div className="flex flex-col">
@@ -186,6 +205,29 @@ export default async function LeaguePage({
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Kod:</span>
               <span className="text-sm font-bold font-mono tracking-widest">{league.inviteCode}</span>
+            </div>
+          </section>
+        )}
+
+        {/* Rules */}
+        {(features.length > 0 || scoringParts.length > 0) && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Regler</h2>
+            <div className="rounded-xl border border-border bg-card px-4 py-4 flex flex-col gap-3">
+              {features.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {features.map((f) => (
+                    <span key={f} className="text-xs px-2.5 py-1 rounded-full bg-secondary text-foreground font-medium">
+                      {FEATURE_LABELS[f] ?? f}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {scoringParts.length > 0 && (
+                <p className="text-xs text-muted-foreground border-t border-border pt-3">
+                  {scoringParts.join(" · ")}
+                </p>
+              )}
             </div>
           </section>
         )}
