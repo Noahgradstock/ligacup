@@ -417,14 +417,19 @@ export default async function BracketPage({
   }));
 
   return (
-    <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Slutspelet</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Tippa vem som vinner varje match — lagen baseras på dina grupptips
-        </p>
+    <div className="flex flex-col">
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-2xl mx-auto relative flex flex-col gap-1.5">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Slutspelet</h1>
+          <p className="text-white/55 text-sm">Tippa vem som vinner varje match — lagen baseras på dina grupptips</p>
+        </div>
+      </section>
+
+      <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
+        <BracketView matches={matchData} rounds={rounds} leagueId={id} initialSlotMap={initialSlotMap} />
       </div>
-      <BracketView matches={matchData} rounds={rounds} leagueId={id} initialSlotMap={initialSlotMap} />
     </div>
   );
 }

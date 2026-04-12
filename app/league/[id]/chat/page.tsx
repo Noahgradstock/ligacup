@@ -39,6 +39,17 @@ export default async function LeagueChatPage({
     // Redis unavailable
   }
 
-  // Chat needs to fill remaining vertical space — use flex-1 within the layout's flex column
-  return <ChatRoom leagueId={id} currentUserId={user.id} initial={initial} />;
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden shrink-0">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-2xl mx-auto relative flex flex-col gap-1.5">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Chatt</h1>
+          <p className="text-white/55 text-sm">Prata med laget i realtid.</p>
+        </div>
+      </section>
+      <ChatRoom leagueId={id} currentUserId={user.id} initial={initial} />
+    </div>
+  );
 }
