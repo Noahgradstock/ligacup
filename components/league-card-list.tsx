@@ -97,8 +97,8 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
     <>
       <div className="flex flex-col gap-3">
         {cards.map((card) => (
-          <div key={card.id} className="relative flex items-center gap-4 px-5 py-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors">
-            <Link href={`/league/${card.id}`} className="absolute inset-0 rounded-lg" aria-label={card.name} />
+          <div key={card.id} className="relative flex items-center gap-4 px-5 py-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/[0.03] transition-all group">
+            <Link href={`/league/${card.id}`} className="absolute inset-0 rounded-xl" aria-label={card.name} />
 
             {/* League avatar or rank badge */}
             {card.bannerUrl ? (
@@ -106,9 +106,9 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
               <img src={card.bannerUrl} alt={card.name} className="w-10 h-10 rounded-full object-cover shrink-0 border border-border" />
             ) : (
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700"
-                : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600"
-                : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700"
+                card.rankInLeague === 1 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                : card.rankInLeague === 2 ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                : card.rankInLeague === 3 ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                 : "bg-secondary text-muted-foreground"
               }`}>
                 {card.rankInLeague ? `#${card.rankInLeague}` : "–"}
@@ -119,15 +119,20 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm truncate">{card.name}</p>
               <p className="text-xs text-muted-foreground">
-                {card.memberCount} deltagare
-                {card.matchesPlayed > 0 && ` · ${card.matchesPlayed} matcher spelade`}
+                {card.memberCount} {card.memberCount === 1 ? "deltagare" : "deltagare"}
+                {card.matchesPlayed > 0 ? ` · ${card.matchesPlayed} matcher spelade` : " · Tippa nu!"}
               </p>
             </div>
 
             {/* Points + arrow */}
             <div className="text-right shrink-0 flex items-center gap-2">
-              <p className="text-lg font-bold tabular-nums">{card.totalPoints}p</p>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+              <div>
+                <p className="text-base font-bold tabular-nums leading-none">{card.totalPoints}p</p>
+                {card.rankInLeague && (
+                  <p className="text-xs text-muted-foreground mt-0.5">Plats {card.rankInLeague}</p>
+                )}
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
                 <path d="m9 18 6-6-6-6"/>
               </svg>
             </div>
