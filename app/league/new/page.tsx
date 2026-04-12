@@ -137,14 +137,16 @@ export default function NewLeaguePage() {
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <PageNav backHref="/dashboard" />
 
-      <form onSubmit={create} className="max-w-lg mx-auto w-full px-6 py-10 flex flex-col gap-10">
-
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Skapa tipslag</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Välj vad ni ska tippa, hur länge och vilka regler som gäller.
-          </p>
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-lg mx-auto relative flex flex-col gap-1.5">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Skapa tipslag</h1>
+          <p className="text-white/55 text-sm">Välj vad ni ska tippa, hur länge och vilka regler som gäller.</p>
         </div>
+      </section>
+
+      <form onSubmit={create} className="max-w-lg mx-auto w-full px-6 py-10 flex flex-col gap-10">
 
         {/* ── 1: Name ── */}
         <section className="flex flex-col gap-3">
