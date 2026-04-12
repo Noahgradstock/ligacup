@@ -249,6 +249,148 @@ export default async function ComparePage({
       .sort();
   }
 
+  // Knockout matches (for SLUTSPEL comparison section)
+  const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL"];
+  const ROUND_NAME_DISPLAY: Record<string, string> = {
+    ROUND_OF_32: "Sextondelsfinaler",
+    ROUND_OF_16: "Åttondelsfinaler",
+    QF: "Kvartsfinal",
+    SF: "Semifinal",
+    FINAL: "Final",
+  };
+
+  let knockoutMatches: {
+    matchId: string;
+    roundType: string;
+    roundName: string;
+    matchNumber: number;
+    scheduledAt: string;
+    homeTeamName: string;
+    homeTeamCode: string | null;
+    awayTeamName: string;
+    awayTeamCode: string | null;
+    isResultConfirmed: boolean;
+    homeScore: number | null;
+    awayScore: number | null;
+    predictions: { userId: string; home: number; away: number }[];
+  }[] = [];
+  let knockoutRounds: { roundType: string; roundName: string }[] = [];
+
+  if (hasMatchScores) {
+    const knockoutRoundRows = await db
+      .select()
+      .from(tournamentRounds)
+      .where(
+        and(
+          eq(tournamentRounds.tournamentId, league.tournamentId),
+          inArray(tournamentRounds.roundType, KNOCKOUT_ROUND_TYPES)
+        )
+      )
+      .orderBy(tournamentRounds.sequenceOrder);
+
+    if (knockoutRoundRows.length > 0) {
+      const knockoutRoundIds = knockoutRoundRows.map((r) => r.id);
+      const htAlias = alias(teams, "ht");
+      const atAlias = alias(teams, "at");
+
+      const knockoutMatchRows = await db
+        .select({
+          matchId: matches.id,
+          roundId: matches.roundId,
+          matchNumber: matches.matchNumber,
+          scheduledAt: matches.scheduledAt,
+          venue: matches.venue,
+          homeTeamName: htAlias.name,
+          homeTeamCode: htAlias.countryCode,
+          awayTeamName: atAlias.name,
+          awayTeamCode: atAlias.countryCode,
+          isResultConfirmed: matches.isResultConfirmed,
+          homeScore: matches.homeScore,
+          awayScore: matches.awayScore,
+        })
+        .from(matches)
+        .innerJoin(tournamentRounds, eq(matches.roundId, tournamentRounds.id))
+        .leftJoin(htAlias, eq(matches.homeTeamId, htAlias.id))
+        .leftJoin(atAlias, eq(matches.awayTeamId, atAlias.id))
+        .where(inArray(matches.roundId, knockoutRoundIds))
+        .orderBy(tournamentRounds.sequenceOrder, matches.matchNumber);
+
+      // Fetch ALL league member predictions for knockout matches
+      const knockoutMatchIds = knockoutMatchRows.map((r) => r.matchId);
+      const knockoutPredRows = knockoutMatchIds.length > 0
+        ? await db
+            .select({
+              matchId: predictions.matchId,
+              userId: predictions.userId,
+              homeScorePred: predictions.homeScorePred,
+              awayScorePred: predictions.awayScorePred,
+            })
+            .from(predictions)
+            .where(
+              and(
+                inArray(predictions.matchId, knockoutMatchIds),
+                eq(predictions.leagueId, id)
+              )
+            )
+        : [];
+
+      const koPredsByMatch = new Map<string, { userId: string; home: number; away: number }[]>();
+      for (const p of knockoutPredRows) {
+        if (!koPredsByMatch.has(p.matchId)) koPredsByMatch.set(p.matchId, []);
+        koPredsByMatch.get(p.matchId)!.push({ userId: p.userId, home: p.homeScorePred, away: p.awayScorePred });
+      }
+
+      // Parse venue JSON for slot labels when team isn't set yet
+      function slotLabel(slot: string | null): string {
+        if (!slot) return "TBD";
+        if (/^[123][A-L]/.test(slot)) {
+          const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
+          return `${pos} ${slot.slice(1)}`;
+        }
+        if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
+        if (slot.startsWith("VK")) return `V. kvartsfinalmatch ${slot.slice(2)}`;
+        if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
+        return slot;
+      }
+
+      // Round rows keyed by id for fast lookup
+      const roundById = new Map(knockoutRoundRows.map((r) => [r.id, r]));
+
+      knockoutMatches = knockoutMatchRows.map((r) => {
+        let homeSlot: string | null = null;
+        let awaySlot: string | null = null;
+        if (r.venue) {
+          try {
+            const v = JSON.parse(r.venue);
+            homeSlot = v.homeSlot ?? null;
+            awaySlot = v.awaySlot ?? null;
+          } catch { /* ignore */ }
+        }
+        const round = roundById.get(r.roundId)!;
+        return {
+          matchId: r.matchId,
+          roundType: round.roundType,
+          roundName: ROUND_NAME_DISPLAY[round.roundType] ?? round.name,
+          matchNumber: r.matchNumber ?? 0,
+          scheduledAt: r.scheduledAt.toISOString(),
+          homeTeamName: r.homeTeamName ?? slotLabel(homeSlot),
+          homeTeamCode: r.homeTeamCode ?? null,
+          awayTeamName: r.awayTeamName ?? slotLabel(awaySlot),
+          awayTeamCode: r.awayTeamCode ?? null,
+          isResultConfirmed: r.isResultConfirmed,
+          homeScore: r.homeScore,
+          awayScore: r.awayScore,
+          predictions: koPredsByMatch.get(r.matchId) ?? [],
+        };
+      });
+
+      knockoutRounds = knockoutRoundRows.map((r) => ({
+        roundType: r.roundType,
+        roundName: ROUND_NAME_DISPLAY[r.roundType] ?? r.name,
+      }));
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
       <div>
@@ -286,6 +428,8 @@ export default async function ComparePage({
           top3={top3ForSection}
           allTeams={allTeams}
           groups={groups}
+          knockoutMatches={knockoutMatches}
+          knockoutRounds={knockoutRounds}
         />
       )}
     </div>

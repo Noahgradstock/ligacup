@@ -24,6 +24,22 @@ export type LockedMatch = {
   predictions: { userId: string; home: number; away: number }[];
 };
 
+export type KnockoutMatchRow = {
+  matchId: string;
+  roundType: string;
+  roundName: string;
+  matchNumber: number;
+  scheduledAt: string;
+  homeTeamName: string;
+  homeTeamCode: string | null;
+  awayTeamName: string;
+  awayTeamCode: string | null;
+  isResultConfirmed: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+  predictions: { userId: string; home: number; away: number }[];
+};
+
 export type MemberInfo = {
   userId: string;
   displayName: string | null;
@@ -45,8 +61,10 @@ type Props = {
   lockedMatches: LockedMatch[];
   top3: Top3Entry[];
   allTeams: TeamOption[];
-  groups: string[]; // e.g. ["Grupp A", "Grupp B", ...]
+  groups: string[]; // e.g. ["A", "B", ...]
   hideTop3?: boolean; // when true, omit the VM Top 3 chip (already shown elsewhere)
+  knockoutMatches?: KnockoutMatchRow[];
+  knockoutRounds?: { roundType: string; roundName: string }[];
 };
 
 type Filter = "nearest" | "top3" | string; // string = group name
@@ -89,6 +107,94 @@ function predClass(
   return "bg-muted text-muted-foreground line-through";
 }
 
+function MatchCard({
+  homeTeamName,
+  homeTeamCode,
+  awayTeamName,
+  awayTeamCode,
+  scheduledAt,
+  label,
+  isResultConfirmed,
+  homeScore,
+  awayScore,
+  preds,
+  currentUserId,
+  memberMap,
+}: {
+  homeTeamName: string;
+  homeTeamCode: string | null;
+  awayTeamName: string;
+  awayTeamCode: string | null;
+  scheduledAt: string;
+  label: string;
+  isResultConfirmed: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
+  preds: { userId: string; home: number; away: number }[];
+  currentUserId: string | null;
+  memberMap: Map<string, MemberInfo>;
+}) {
+  const date = new Date(scheduledAt);
+  const isUpcoming = date.getTime() > Date.now();
+  const dateStr = date.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+  const timeStr = date.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Match header */}
+      <div className="px-3 py-2 border-b border-border bg-secondary/30 flex items-center justify-between">
+        <span className="text-xs font-medium">
+          {toFlag(homeTeamCode)} {homeTeamName}{" "}
+          <span className="text-muted-foreground mx-1">vs</span>{" "}
+          {toFlag(awayTeamCode)} {awayTeamName}
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {isResultConfirmed && homeScore !== null ? (
+            <span className="text-xs font-bold text-primary">
+              {homeScore}–{awayScore}
+            </span>
+          ) : isUpcoming ? (
+            <span className="text-xs text-muted-foreground">{timeStr}</span>
+          ) : null}
+          <span className="text-xs text-muted-foreground">
+            {label ? `${label} · ` : ""}{dateStr}
+          </span>
+        </div>
+      </div>
+
+      {/* Predictions */}
+      <div className="divide-y divide-border">
+        {preds.length === 0 ? (
+          <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
+        ) : (
+          preds.map((pred) => {
+            const member = memberMap.get(pred.userId);
+            if (!member) return null;
+            const cls = predClass(pred.home, pred.away, homeScore, awayScore, isResultConfirmed);
+            const isMe = member.userId === currentUserId;
+            return (
+              <div
+                key={pred.userId}
+                className={`flex items-center justify-between px-3 py-2 ${isMe ? "bg-primary/5" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <MemberAvatar m={member} size={5} />
+                  <span className={`text-xs font-medium ${isMe ? "text-primary" : ""}`}>
+                    {memberLabel(member)}
+                  </span>
+                </div>
+                <span className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded ${cls || "bg-secondary/60"}`}>
+                  {pred.home}–{pred.away}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function MemberPredictionsSection({
   leagueId,
   currentUserId,
@@ -99,6 +205,8 @@ export function MemberPredictionsSection({
   allTeams,
   groups,
   hideTop3 = false,
+  knockoutMatches = [],
+  knockoutRounds = [],
 }: Props) {
   const storageKey = `allas-tips-filter-${leagueId}`;
   const [filter, setFilter] = useState<Filter>(() => {
@@ -135,9 +243,13 @@ export function MemberPredictionsSection({
 
   const memberMap = new Map(members.map((m) => [m.userId, m]));
 
-  // Derive filtered matches
+  // Whether the active filter is a knockout round
+  const knockoutRoundTypes = new Set(knockoutRounds.map((r) => r.roundType));
+  const isKnockoutFilter = knockoutRoundTypes.has(filter);
+
+  // Derive filtered group matches
   const filteredMatches = (() => {
-    if (filter === "top3") return [];
+    if (filter === "top3" || isKnockoutFilter) return [];
     if (filter === "nearest") {
       // 5 matches closest to now — upcoming first, then most recent past
       const now = Date.now();
@@ -155,6 +267,11 @@ export function MemberPredictionsSection({
     // Group filter
     return lockedMatches.filter((m) => m.groupName === filter);
   })();
+
+  // Derive filtered knockout matches
+  const filteredKnockoutMatches = isKnockoutFilter
+    ? knockoutMatches.filter((m) => m.roundType === filter)
+    : [];
 
   async function saveTop3() {
     startTransition(async () => {
@@ -224,6 +341,18 @@ export function MemberPredictionsSection({
             </span>
             {groups.map((g) => (
               <Chip key={g} chipKey={g} label={g} />
+            ))}
+          </div>
+        )}
+
+        {/* Knockout round chips with label */}
+        {knockoutRounds.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
+              Slutspel
+            </span>
+            {knockoutRounds.map((r) => (
+              <Chip key={r.roundType} chipKey={r.roundType} label={r.roundName} />
             ))}
           </div>
         )}
@@ -358,89 +487,55 @@ export function MemberPredictionsSection({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {filteredMatches.length === 0 ? (
+          {isKnockoutFilter ? (
+            // Knockout round view
+            filteredKnockoutMatches.length === 0 ? (
+              <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+                Inga matcher i denna runda.
+              </div>
+            ) : (
+              filteredKnockoutMatches.map((match) => (
+                <MatchCard
+                  key={match.matchId}
+                  homeTeamName={match.homeTeamName}
+                  homeTeamCode={match.homeTeamCode}
+                  awayTeamName={match.awayTeamName}
+                  awayTeamCode={match.awayTeamCode}
+                  scheduledAt={match.scheduledAt}
+                  label={match.roundName}
+                  isResultConfirmed={match.isResultConfirmed}
+                  homeScore={match.homeScore}
+                  awayScore={match.awayScore}
+                  preds={match.predictions}
+                  currentUserId={currentUserId}
+                  memberMap={memberMap}
+                />
+              ))
+            )
+          ) : filteredMatches.length === 0 ? (
             <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
               {filter === "nearest"
                 ? "Inga matcher hittades."
                 : "Inga matcher i denna grupp."}
             </div>
           ) : (
-            filteredMatches.map((match) => {
-              const date = new Date(match.scheduledAt);
-              const isUpcoming = date.getTime() > Date.now();
-              const dateStr = date.toLocaleDateString("sv-SE", {
-                day: "numeric",
-                month: "short",
-              });
-              const timeStr = date.toLocaleTimeString("sv-SE", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-
-              return (
-                <div
-                  key={match.matchId}
-                  className="rounded-lg border border-border bg-card overflow-hidden"
-                >
-                  {/* Match header */}
-                  <div className="px-3 py-2 border-b border-border bg-secondary/30 flex items-center justify-between">
-                    <span className="text-xs font-medium">
-                      {toFlag(match.homeTeamCode)} {match.homeTeamName}{" "}
-                      <span className="text-muted-foreground mx-1">vs</span>{" "}
-                      {toFlag(match.awayTeamCode)} {match.awayTeamName}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {match.isResultConfirmed && match.homeScore !== null ? (
-                        <span className="text-xs font-bold text-primary">
-                          {match.homeScore}–{match.awayScore}
-                        </span>
-                      ) : isUpcoming ? (
-                        <span className="text-xs text-muted-foreground">{timeStr}</span>
-                      ) : null}
-                      <span className="text-xs text-muted-foreground">
-                        {match.groupName ? `Grupp ${match.groupName}` : ""} · {dateStr}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Predictions */}
-                  <div className="divide-y divide-border">
-                    {match.predictions.length === 0 ? (
-                      <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
-                    ) : (
-                      match.predictions.map((pred) => {
-                        const member = memberMap.get(pred.userId);
-                        if (!member) return null;
-                        const cls = predClass(
-                          pred.home,
-                          pred.away,
-                          match.homeScore,
-                          match.awayScore,
-                          match.isResultConfirmed
-                        );
-                        const isMe = member.userId === currentUserId;
-                        return (
-                          <div
-                            key={pred.userId}
-                            className={`flex items-center justify-between px-3 py-2 ${isMe ? "bg-primary/5" : ""}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <MemberAvatar m={member} size={5} />
-                              <span className={`text-xs font-medium ${isMe ? "text-primary" : ""}`}>
-                                {memberLabel(member)}
-                              </span>
-                            </div>
-                            <span className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded ${cls || "bg-secondary/60"}`}>
-                              {pred.home}–{pred.away}
-                            </span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })
+            filteredMatches.map((match) => (
+              <MatchCard
+                key={match.matchId}
+                homeTeamName={match.homeTeamName}
+                homeTeamCode={match.homeTeamCode}
+                awayTeamName={match.awayTeamName}
+                awayTeamCode={match.awayTeamCode}
+                scheduledAt={match.scheduledAt}
+                label={match.groupName ? `Grupp ${match.groupName}` : ""}
+                isResultConfirmed={match.isResultConfirmed}
+                homeScore={match.homeScore}
+                awayScore={match.awayScore}
+                preds={match.predictions}
+                currentUserId={currentUserId}
+                memberMap={memberMap}
+              />
+            ))
           )}
         </div>
       )}
