@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
 import { PageNav } from "@/components/page-nav";
 
-type Privacy = "private" | "public";
-
 const MAX_MEMBER_OPTIONS = [
   { label: "10", value: 10 },
   { label: "20", value: 20 },
@@ -53,8 +51,7 @@ export default function NewLeaguePage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [privacy, setPrivacy] = useState<Privacy>("private");
-  const [maxMembers, setMaxMembers] = useState(20);
+const [maxMembers, setMaxMembers] = useState(20);
   const [enabledFeatures, setEnabledFeatures] = useState<Set<string>>(
     new Set(["match_scores", "tournament_winner", "top_scorer"])
   );
@@ -115,7 +112,7 @@ export default function NewLeaguePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
-        isPublic: privacy === "public",
+        isPublic: false,
         maxMembers,
         features: Array.from(enabledFeatures),
         scoring: { exactScore, correctWinner, correctDraw, topScorerPoints, yellowCardsPoints },
@@ -260,38 +257,7 @@ export default function NewLeaguePage() {
           </div>
         </section>
 
-        {/* ── 3: Privacy ── */}
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Synlighet
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {(["private", "public"] as Privacy[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPrivacy(p)}
-                className={`flex flex-col gap-1.5 rounded-lg border px-4 py-4 text-left transition-colors ${
-                  privacy === p
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-secondary/50"
-                }`}
-              >
-                <span className="text-lg">{p === "private" ? "🔒" : "🌍"}</span>
-                <span className="font-semibold text-sm">
-                  {p === "private" ? "Privat" : "Publik"}
-                </span>
-                <span className="text-xs leading-relaxed">
-                  {p === "private"
-                    ? "Bara de med inbjudningslänken kan gå med."
-                    : "Vem som helst kan hitta och gå med."}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 4: Max members ── */}
+        {/* ── 3: Max members ── */}
         <section className="flex flex-col gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Max antal deltagare
