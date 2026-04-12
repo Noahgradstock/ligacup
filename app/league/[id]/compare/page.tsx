@@ -309,6 +309,9 @@ export default async function ComparePage({
     FINAL: "Final",
   };
 
+  // Derived top 3 from bracket (populated below when hasMatchScores)
+  let derivedTop3: typeof top3 = [];
+
   let knockoutMatches: {
     matchId: string;
     roundType: string;
@@ -489,6 +492,31 @@ export default async function ComparePage({
         matchResolvedTeams.set(kMatch.matchId, perUser);
       }
 
+      // ── Derive 1st / 2nd from the FINAL bracket prediction ───────────────────
+      const finalRound = knockoutRoundRows.find((r) => r.roundType === "FINAL");
+      if (finalRound) {
+        const finalMatch = knockoutMatchRows.find((m) => m.roundId === finalRound.id);
+        if (finalMatch) {
+          for (const member of members) {
+            const resolved = matchResolvedTeams.get(finalMatch.matchId)?.get(member.userId);
+            const pred = memberKoPredMaps.get(member.userId)?.get(finalMatch.matchId);
+            if (!resolved || !pred) continue;
+            const isHome = predWinnerIsHome({
+              home: pred.home, away: pred.away,
+              homeET: pred.homeET, awayET: pred.awayET,
+              homePen: pred.homePen, awayPen: pred.awayPen,
+            });
+            if (isHome === null) continue;
+            derivedTop3.push({
+              userId: member.userId,
+              first: isHome ? resolved.home : resolved.away,
+              second: isHome ? resolved.away : resolved.home,
+              third: null,
+            });
+          }
+        }
+      }
+
       knockoutMatches = knockoutMatchRows.map((r) => {
         let homeSlot: string | null = null;
         let awaySlot: string | null = null;
@@ -549,7 +577,7 @@ export default async function ComparePage({
           email: m.email,
           avatarUrl: m.avatarUrl ?? null,
         }))}
-        top3={top3}
+        top3={derivedTop3.length > 0 ? derivedTop3 : top3}
         bonus={bonus}
         hasTopScorer={hasTopScorer}
         hasYellowCards={hasYellowCards}
