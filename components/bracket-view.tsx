@@ -207,7 +207,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
                 {allTipped && (
                   <span className="text-xs leading-none">✓</span>
                 )}
-                {!allTipped && tipped > 0 && activeRound !== r.roundType && (
+                {!allTipped && tipped > 0 && (
                   <span className="text-xs leading-none opacity-70">{tipped}/{total}</span>
                 )}
               </button>

@@ -8,6 +8,7 @@ const BASE_TABS = [
   { id: "tippa", label: "Grupptips", href: (id: string) => `/league/${id}/predictions`, requiresMatchScores: true },
   { id: "slutspel", label: "Slutspel", href: (id: string) => `/league/${id}/bracket`, requiresMatchScores: true },
   { id: "bonustips", label: "Bonustips", href: (id: string) => `/league/${id}/bonus`, requiresBonusFeature: true },
+  { id: "jamfor", label: "Jämför", href: (id: string) => `/league/${id}/compare` },
   { id: "chatt", label: "Chatt", href: (id: string) => `/league/${id}/chat` },
 ];
 
@@ -23,6 +24,7 @@ export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; fe
     if (pathname.endsWith("/predictions")) return "tippa";
     if (pathname.endsWith("/chat")) return "chatt";
     if (pathname.endsWith("/bonus")) return "bonustips";
+    if (pathname.endsWith("/compare")) return "jamfor";
     return "tabell";
   }
 
