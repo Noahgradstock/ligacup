@@ -11,6 +11,7 @@ import { redis, keys } from "@/lib/redis";
 import { CopyButton } from "./copy-button";
 import { Leaderboard } from "@/components/leaderboard";
 import { DeleteLeagueButton } from "./delete-league-button";
+import { ShareTipsButton } from "./share-tips-button";
 import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
 
@@ -183,6 +184,9 @@ export default async function LeaguePage({
                     <span className="ml-2 text-xs text-muted-foreground">(du)</span>
                   )}
                 </span>
+                {dbUser && m.userId === dbUser.id && (
+                  <ShareTipsButton />
+                )}
               </div>
             ))}
           </div>
