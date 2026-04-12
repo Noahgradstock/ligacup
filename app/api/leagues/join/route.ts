@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, leagues, leagueMembers } from "@/lib/db/schema";
+import { users, leagues, leagueMembers, notifications } from "@/lib/db/schema";
 
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
@@ -50,6 +50,19 @@ export async function POST(request: Request) {
   }
 
   await db.insert(leagueMembers).values({ leagueId: league.id, userId: user.id });
+
+  // Notify league owner (unless they're joining their own league)
+  if (league.ownerId !== user.id) {
+    await db.insert(notifications).values({
+      userId: league.ownerId,
+      type: "member_joined",
+      payload: {
+        leagueId: league.id,
+        leagueName: league.name,
+        joinerName: user.displayName ?? user.email.split("@")[0],
+      },
+    });
+  }
 
   return Response.json({ id: league.id }, { status: 201 });
 }

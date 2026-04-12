@@ -155,7 +155,7 @@ export const predictions = pgTable(
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
     userId: uuid("user_id").notNull().references(() => users.id),
     matchId: uuid("match_id").notNull().references(() => matches.id),
-    leagueId: uuid("league_id").references(() => leagues.id, { onDelete: "cascade" }),
+    leagueId: uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
     homeScorePred: integer("home_score_pred").notNull(),
     awayScorePred: integer("away_score_pred").notNull(),
     homeExtraTimePred: integer("home_extra_time_pred"),

@@ -1,20 +1,74 @@
 import { auth } from "@clerk/nextjs/server";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { users, notifications, leagues } from "@/lib/db/schema";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
 
-function formatPayload(type: string, payload: Record<string, unknown>): string {
+function getIcon(type: string): string {
+  switch (type) {
+    case "rank_overtaken":    return "📉";
+    case "prediction_result": return "⚽";
+    case "member_joined":     return "👋";
+    case "mention":           return "💬";
+    default:                  return "🔔";
+  }
+}
+
+function formatPayload(
+  type: string,
+  payload: Record<string, unknown>,
+  leagueName?: string
+): string {
+  const inLeague = leagueName ? ` i ${leagueName}` : "";
+
   if (type === "rank_overtaken") {
     const { overtakerName, newRank, oldRank } = payload as {
       overtakerName: string;
       newRank: number;
       oldRank: number;
     };
-    return `${overtakerName} gick om dig! Du föll från plats #${oldRank} till #${newRank}.`;
+    return `${overtakerName} gick om dig${inLeague}! Du föll från plats #${oldRank} till #${newRank}.`;
   }
+
+  if (type === "prediction_result") {
+    const { homeTeam, awayTeam, homeScore, awayScore, homePred, awayPred, points, isExact } =
+      payload as {
+        homeTeam: string;
+        awayTeam: string;
+        homeScore: number;
+        awayScore: number;
+        homePred: number;
+        awayPred: number;
+        points: number;
+        isExact: boolean;
+      };
+    const outcome = isExact
+      ? "Exakt rätt!"
+      : (points as number) > 0
+      ? "Rätt utgång!"
+      : "Fel den här gången.";
+    return `${homeTeam} ${homeScore}–${awayScore} ${awayTeam} — du tippade ${homePred}–${awayPred}. ${outcome} +${points}p`;
+  }
+
+  if (type === "member_joined") {
+    const { joinerName, leagueName: ln } = payload as {
+      joinerName: string;
+      leagueName?: string;
+    };
+    return `${joinerName} gick med i ${ln ?? "din liga"}!`;
+  }
+
+  if (type === "mention") {
+    const { mentionerName, messagePreview } = payload as {
+      mentionerName: string;
+      messagePreview: string;
+    };
+    return `${mentionerName} nämnde dig${inLeague}: "${messagePreview}"`;
+  }
+
   return "Ny notifikation";
 }
 
@@ -26,6 +80,26 @@ function timeAgo(date: Date): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h sedan`;
   return `${Math.floor(hours / 24)}d sedan`;
+}
+
+function getDayLabel(date: Date): string {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diff = todayStart - dateStart;
+  if (diff === 0) return "Idag";
+  if (diff === 86_400_000) return "Igår";
+  return "Tidigare";
+}
+
+async function clearAllNotifications() {
+  "use server";
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return;
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!user) return;
+  await db.delete(notifications).where(eq(notifications.userId, user.id));
+  revalidatePath("/notifications");
 }
 
 export default async function NotificationsPage() {
@@ -52,53 +126,106 @@ export default async function NotificationsPage() {
       .where(and(eq(notifications.userId, user.id), eq(notifications.isRead, false)));
   }
 
+  // Fetch league names for notifications that have a leagueId in payload
+  const leagueIds = [
+    ...new Set(
+      rows
+        .map((n) => (n.payload as Record<string, unknown>)?.leagueId as string | undefined)
+        .filter((id): id is string => !!id)
+    ),
+  ];
+  const leagueRows =
+    leagueIds.length > 0
+      ? await db
+          .select({ id: leagues.id, name: leagues.name })
+          .from(leagues)
+          .where(inArray(leagues.id, leagueIds))
+      : [];
+  const leagueMap = new Map(leagueRows.map((l) => [l.id, l.name]));
+
+  // Group by day label
+  const groups: { label: string; items: typeof rows }[] = [];
+  for (const n of rows) {
+    const label = getDayLabel(n.createdAt);
+    const existing = groups.find((g) => g.label === label);
+    if (existing) {
+      existing.items.push(n);
+    } else {
+      groups.push({ label, items: [n] });
+    }
+  }
+
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
       <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-6">
-        <h1 className="text-2xl font-bold tracking-tight">Notifikationer</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Notifikationer</h1>
+          {rows.length > 0 && (
+            <form action={clearAllNotifications}>
+              <button
+                type="submit"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Rensa alla
+              </button>
+            </form>
+          )}
+        </div>
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-muted-foreground text-sm">
             Inga notifikationer ännu.
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {rows.map((n) => {
-              const payload = (n.payload ?? {}) as Record<string, unknown>;
-              const leagueId = payload.leagueId as string | undefined;
-              const text = formatPayload(n.type, payload);
+          <div className="flex flex-col gap-6">
+            {groups.map((group) => (
+              <div key={group.label} className="flex flex-col gap-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+                  {group.label}
+                </p>
+                {group.items.map((n) => {
+                  const payload = (n.payload ?? {}) as Record<string, unknown>;
+                  const leagueId = payload.leagueId as string | undefined;
+                  const leagueName = leagueId ? leagueMap.get(leagueId) : undefined;
+                  const text = formatPayload(n.type, payload, leagueName);
+                  const icon = getIcon(n.type);
 
-              return (
-                <div
-                  key={n.id}
-                  className={`flex items-start gap-3 px-4 py-3 rounded-lg border ${
-                    n.isRead ? "border-border bg-card" : "border-primary/20 bg-primary/5"
-                  }`}
-                >
-                  <div className="mt-0.5 w-2 h-2 rounded-full shrink-0 mt-2">
-                    {!n.isRead && <span className="block w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">{text}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {timeAgo(n.createdAt)}
-                      </span>
-                      {leagueId && (
-                        <Link
-                          href={`/league/${leagueId}`}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          Visa tabellen →
-                        </Link>
+                  return (
+                    <div
+                      key={n.id}
+                      className={`flex items-start gap-3 px-4 py-3 rounded-lg border ${
+                        n.isRead
+                          ? "border-border bg-card"
+                          : "border-primary/20 bg-primary/5"
+                      }`}
+                    >
+                      <span className="text-base shrink-0 mt-0.5">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">{text}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {timeAgo(n.createdAt)}
+                          </span>
+                          {leagueId && n.type !== "member_joined" && (
+                            <Link
+                              href={`/league/${leagueId}`}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              {n.type === "mention" ? "Visa chatten →" : "Visa tabellen →"}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                      {!n.isRead && (
+                        <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
                       )}
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </div>

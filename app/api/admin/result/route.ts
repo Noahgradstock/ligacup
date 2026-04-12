@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   matches,
@@ -7,6 +7,7 @@ import {
   pointSnapshots,
   notifications,
   users,
+  teams,
 } from "@/lib/db/schema";
 import { calcPoints } from "@/lib/predictor/points";
 import { redis, keys } from "@/lib/redis";
@@ -46,6 +47,14 @@ export async function POST(request: Request) {
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId)).limit(1);
   if (!match) return new Response("Match not found", { status: 404 });
 
+  const teamIds = [match.homeTeamId, match.awayTeamId].filter((id): id is string => id !== null);
+  const teamRows = teamIds.length > 0
+    ? await db.select({ id: teams.id, name: teams.name, shortName: teams.shortName }).from(teams).where(inArray(teams.id, teamIds))
+    : [];
+  const teamMap = new Map(teamRows.map((t) => [t.id, t.shortName ?? t.name]));
+  const homeTeamName = match.homeTeamId ? (teamMap.get(match.homeTeamId) ?? "Hemmalag") : "Hemmalag";
+  const awayTeamName = match.awayTeamId ? (teamMap.get(match.awayTeamId) ?? "Bortalag") : "Bortalag";
+
   await db
     .update(matches)
     .set({ homeScore, awayScore, isResultConfirmed: true, status: "completed", updatedAt: new Date() })
@@ -73,6 +82,7 @@ export async function POST(request: Request) {
   }
 
   let totalAwarded = 0;
+  const predictionResultNotifs: { userId: string; payload: Record<string, unknown> }[] = [];
 
   for (const pred of matchPredictions) {
     // Skip predictions not scoped to a league (legacy global predictions)
@@ -84,6 +94,21 @@ export async function POST(request: Request) {
       pointRules
     );
     totalAwarded += pts;
+
+    predictionResultNotifs.push({
+      userId: pred.userId,
+      payload: {
+        leagueId: pred.leagueId,
+        homeTeam: homeTeamName,
+        awayTeam: awayTeamName,
+        homeScore,
+        awayScore,
+        homePred: pred.homeScorePred,
+        awayPred: pred.awayScorePred,
+        points: pts,
+        isExact: pts === pointRules.pointsExactScore && pts > 0,
+      },
+    });
 
     {
       const leagueId = pred.leagueId;
@@ -114,6 +139,16 @@ export async function POST(request: Request) {
           },
         });
     }
+  }
+
+  if (predictionResultNotifs.length > 0) {
+    await db.insert(notifications).values(
+      predictionResultNotifs.map((n) => ({
+        userId: n.userId,
+        type: "prediction_result" as const,
+        payload: n.payload,
+      }))
+    );
   }
 
   const affectedLeagueIds = [...new Set(

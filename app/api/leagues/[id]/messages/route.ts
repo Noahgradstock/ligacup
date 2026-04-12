@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users, leagueMembers, messages } from "@/lib/db/schema";
+import { users, leagueMembers, messages, notifications } from "@/lib/db/schema";
 import { redis, keys } from "@/lib/redis";
 
 export type ChatMessage = {
@@ -112,6 +112,34 @@ export async function POST(
     keys.eventsChannel(leagueId),
     JSON.stringify({ type: "new_message", message: chatMsg })
   );
+
+  // Notify mentioned users (@namn)
+  const mentionHandles = [...new Set((text.match(/@(\S+)/g) ?? []).map((m) => m.slice(1).toLowerCase()))];
+  if (mentionHandles.length > 0) {
+    const members = await db
+      .select({ userId: users.id, displayName: users.displayName })
+      .from(users)
+      .innerJoin(leagueMembers, eq(users.id, leagueMembers.userId))
+      .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.isActive, true)));
+
+    const toNotify = members.filter(
+      (m) => m.userId !== user.id && mentionHandles.includes((m.displayName ?? "").toLowerCase())
+    );
+
+    if (toNotify.length > 0) {
+      await db.insert(notifications).values(
+        toNotify.map((m) => ({
+          userId: m.userId,
+          type: "mention",
+          payload: {
+            leagueId,
+            mentionerName: user.displayName ?? user.email.split("@")[0],
+            messagePreview: text.length > 80 ? text.slice(0, 77) + "..." : text,
+          },
+        }))
+      );
+    }
+  }
 
   return Response.json(chatMsg, { status: 201 });
 }

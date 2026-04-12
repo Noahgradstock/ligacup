@@ -433,7 +433,7 @@ export default function NewLeaguePage() {
               Insats per person <span className="font-normal normal-case tracking-normal">(valfri)</span>
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Definiera potten i förväg — alla i laget ser beloppet.
+              Definiera potten i förväg, alla i tipslaget lägger in samma belopp.
             </p>
           </div>
 
@@ -477,7 +477,7 @@ export default function NewLeaguePage() {
             <p className="text-xs text-muted-foreground leading-relaxed">
               <span className="font-medium text-foreground">Frivilligt.</span>{" "}
               Ligacup samlar varken in eller hanterar pengar. Insatsen visas
-              enbart som information för deltagarna — hur ni löser betalningen
+              enbart som information för deltagarna, hur ni löser betalningen
               sköter ni själva.
             </p>
           </div>

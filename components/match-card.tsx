@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { FullPred } from "@/lib/predictor/winner";
 
 type Props = {
@@ -80,6 +81,7 @@ export function MatchCard({
   const [committedHomePen, setCommittedHomePen] = useState<number | null>(savedHomePen ?? null);
   const [committedAwayPen, setCommittedAwayPen] = useState<number | null>(savedAwayPen ?? null);
 
+  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     savedHome !== null ? "saved" : "idle"
   );
@@ -190,8 +192,19 @@ export function MatchCard({
             const data = await res.json();
             invalidatedMatchIds = data.invalidatedMatchIds ?? [];
           } catch {
-            // Body parse failed; save is confirmed but cascade data is lost.
-            // The user can refresh to see the correct state.
+            // Body parse failed — save is confirmed but cascade data is lost.
+            // Refresh the page so the server re-fetches the canonical state and
+            // any downstream predictions that were deleted by cascade go blank.
+            onSave?.(matchId, { home: h, away: a, homeET: hetVal, awayET: aetVal, homePen: hpenVal, awayPen: apenVal }, []);
+            setCommittedHome(h);
+            setCommittedAway(a);
+            setCommittedHomeET(hetVal);
+            setCommittedAwayET(aetVal);
+            setCommittedHomePen(hpenVal);
+            setCommittedAwayPen(apenVal);
+            setStatus("saved");
+            router.refresh();
+            return;
           }
           setCommittedHome(h);
           setCommittedAway(a);

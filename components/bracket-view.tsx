@@ -95,6 +95,8 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
     sessionStorage.setItem(SESSION_KEY, roundType);
   }
 
+  const [cascadeCount, setCascadeCount] = useState(0);
+
   const [predMap, setPredMap] = useState<Map<string, FullPred>>(() => {
     const m = new Map<string, FullPred>();
     for (const match of matches) {
@@ -118,6 +120,9 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       for (const id of invalidatedMatchIds) next.delete(id);
       return next;
     });
+    if (invalidatedMatchIds.length > 0) {
+      setCascadeCount(invalidatedMatchIds.length);
+    }
   }
 
   // Build a live slot→team map by starting from the server-computed group slot map
@@ -239,6 +244,16 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
               ? "Tippa klart kvartsfinalen för att se vilka lag som möts."
               : "Tippa klart semifinalen för att se vilka lag som möts."}
           </p>
+        </div>
+      )}
+
+      {/* Cascade notice — shown when an upstream winner change cleared downstream predictions */}
+      {cascadeCount > 0 && (
+        <div className="mb-1 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 flex items-start justify-between gap-2">
+          <p className="text-xs text-blue-800 dark:text-blue-300">
+            Vinnaren ändrades — {cascadeCount} efterföljande {cascadeCount === 1 ? "match" : "matcher"} rensades automatiskt.
+          </p>
+          <button onClick={() => setCascadeCount(0)} className="text-blue-500 text-xs shrink-0 leading-none mt-0.5">✕</button>
         </div>
       )}
 

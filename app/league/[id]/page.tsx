@@ -91,90 +91,99 @@ export default async function LeaguePage({
   const entryFee = config?.entryFee ?? null;
 
   return (
-    <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
-      {/* Meta */}
-      <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">
-          {members.length} deltagare · VM 2026
-        </p>
-        {entryFee && entryFee > 0 && (
-          <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 w-fit">
-            <span className="text-base">🏅</span>
-            <div className="text-xs">
-              <span className="font-semibold text-amber-800 dark:text-amber-400">
-                Insats: {entryFee} kr/person
-              </span>
-              <span className="text-amber-700/70 dark:text-amber-500/70 mx-1.5">·</span>
-              <span className="text-amber-700/70 dark:text-amber-500/70">
-                Pott: {entryFee * members.length} kr
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Live leaderboard */}
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Tabellen</h2>
-        <Leaderboard
-          leagueId={id}
-          currentUserId={dbUser?.id ?? null}
-          initial={initialLeaderboard}
-        />
-      </section>
-
-      {/* Members */}
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Deltagare</h2>
-        <div className="flex flex-col gap-1">
-          {members.map((m) => (
-            <div
-              key={m.userId}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-card"
-            >
-              {m.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.avatarUrl} alt={displayLabel(m)} className="w-7 h-7 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase shrink-0">
-                  {displayLabel(m).slice(0, 1)}
-                </div>
-              )}
-              <span className="text-sm">
-                {displayLabel(m)}
-                {dbUser && m.userId === dbUser.id && (
-                  <span className="ml-2 text-xs text-muted-foreground">(du)</span>
-                )}
-              </span>
-            </div>
-          ))}
+    <div className="flex flex-col">
+      {/* ── Hero strip ── */}
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-2xl mx-auto relative flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+            {members.length} deltagare
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
+            ⚽ VM 2026
+          </span>
+          {entryFee && entryFee > 0 && (
+            <span className="inline-flex items-center gap-1.5 bg-[#e6a800]/15 text-[#e6a800] text-xs px-3 py-1.5 rounded-full border border-[#e6a800]/25 font-medium">
+              🏅 Insats {entryFee} kr/p · Pott {entryFee * members.length} kr
+            </span>
+          )}
         </div>
       </section>
 
-      {/* Invite */}
-      {isMember && (
-        <section className="rounded-lg border border-border bg-secondary/50 px-4 py-4 flex flex-col gap-3">
-          <p className="text-sm font-medium">Bjud in vänner</p>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={inviteUrl}
-              className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm font-mono focus:outline-none"
-            />
-            <CopyButton text={inviteUrl} />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Kod: <span className="font-semibold font-mono">{league.inviteCode}</span>
-          </p>
+      {/* ── Content ── */}
+      <div className="max-w-2xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
+        {/* Live leaderboard */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tabell</h2>
+          <Leaderboard
+            leagueId={id}
+            currentUserId={dbUser?.id ?? null}
+            initial={initialLeaderboard}
+          />
         </section>
-      )}
 
-      {/* Owner settings */}
-      {dbUser && league.ownerId === dbUser.id && (
-        <section className="flex flex-col gap-2 pt-4 border-t border-border">
-          <DeleteLeagueButton leagueId={id} leagueName={league.name} />
+        {/* Members */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Deltagare</h2>
+            <span className="text-xs text-muted-foreground">{members.length} st</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            {members.map((m) => (
+              <div
+                key={m.userId}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-card"
+              >
+                {m.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.avatarUrl} alt={displayLabel(m)} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary uppercase shrink-0">
+                    {displayLabel(m).slice(0, 1)}
+                  </div>
+                )}
+                <span className="text-sm flex-1">
+                  {displayLabel(m)}
+                  {dbUser && m.userId === dbUser.id && (
+                    <span className="ml-2 text-xs text-muted-foreground">(du)</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
-      )}
+
+        {/* Invite */}
+        {isMember && (
+          <section className="rounded-xl border border-border bg-secondary/30 px-5 py-5 flex flex-col gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Bjud in</p>
+              <p className="text-xs text-muted-foreground mt-1">Dela länken eller koden med dina vänner.</p>
+            </div>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={inviteUrl}
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none"
+              />
+              <CopyButton text={inviteUrl} />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Kod:</span>
+              <span className="text-sm font-bold font-mono tracking-widest">{league.inviteCode}</span>
+            </div>
+          </section>
+        )}
+
+        {/* Owner settings */}
+        {dbUser && league.ownerId === dbUser.id && (
+          <section className="flex flex-col gap-2 pt-4 border-t border-border">
+            <DeleteLeagueButton leagueId={id} leagueName={league.name} />
+          </section>
+        )}
+      </div>
     </div>
   );
 }
