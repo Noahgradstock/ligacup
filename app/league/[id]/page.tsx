@@ -108,6 +108,7 @@ export default async function LeaguePage({
   if (scoring.correctWinner != null) scoringParts.push(`Rätt utgång: ${scoring.correctWinner}p`);
   if (scoring.topScorerPoints != null && features.includes("top_scorer")) scoringParts.push(`Skyttekung: ${scoring.topScorerPoints}p`);
   if (scoring.yellowCardsPoints != null && features.includes("most_yellow_cards")) scoringParts.push(`Gula kort: ${scoring.yellowCardsPoints}p`);
+  if (entryFee && entryFee > 0) scoringParts.push(`Insats: ${entryFee} kr/p`);
 
   return (
     <div className="flex flex-col">
