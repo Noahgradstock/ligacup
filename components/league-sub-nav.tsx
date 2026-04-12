@@ -37,23 +37,23 @@ export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; fe
 
   return (
     <div className="border-b border-border relative">
-      {/* Fade-out gradient on the right — signals scrollability on mobile */}
+      {/* Fade-out gradient on the right to signal scrollability on mobile */}
       <div
-        className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 sm:hidden"
+        className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 z-10 sm:hidden"
         style={{ background: "linear-gradient(to right, transparent, var(--background))" }}
         aria-hidden
       />
-      {/* Outer centering wrapper (desktop: center the tab strip, mobile: scroll) */}
+      {/* Outer centering wrapper */}
       <div className="max-w-2xl mx-auto w-full">
         <div
-          className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-none px-4"
+          className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-none px-2"
           style={{ touchAction: "pan-x" }}
         >
           {tabs.map((tab) => (
             <Link
               key={tab.id}
               href={tab.href(leagueId)}
-              className={`shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`shrink-0 px-4 py-3.5 text-sm font-semibold border-b-[3px] -mb-px transition-colors ${
                 current === tab.id
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"

@@ -15,9 +15,11 @@ type Props = {
   centerTitle?: string;
   /** Right-side content override */
   rightSlot?: React.ReactNode;
+  /** Hide the global icon nav (home/bell/profile) — use inside league pages */
+  hideNav?: boolean;
 };
 
-export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Props = {}) {
+export async function AppNav({ backHref, backLabel, centerTitle, rightSlot, hideNav = false }: Props = {}) {
   const { userId: clerkId } = await auth();
 
   let unreadCount = 0;
@@ -49,7 +51,7 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
       </Link>
 
       {/* Center — desktop: Facebook-style icon nav | mobile: league title */}
-      {clerkId && <DesktopCenterNav unreadCount={unreadCount} />}
+      {clerkId && !hideNav && <DesktopCenterNav unreadCount={unreadCount} />}
 
       {centerTitle && (
         <span className="sm:hidden absolute left-1/2 -translate-x-1/2 text-base font-bold truncate max-w-[40%] text-center pointer-events-none">
@@ -60,7 +62,7 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot }: Pr
       {/* Right — notification bell (mobile only) + any extra slot */}
       <div className="flex items-center gap-2 shrink-0">
         {rightSlot}
-        {clerkId && (
+        {clerkId && !hideNav && (
           <div className="sm:hidden">
             <NotificationBell initialCount={unreadCount} />
           </div>

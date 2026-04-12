@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { leagues } from "@/lib/db/schema";
 import { AppNav } from "@/components/app-nav";
-import { BottomNav } from "@/components/bottom-nav";
 import { LeagueSubNav } from "@/components/league-sub-nav";
 
 export default async function LeagueLayout({
@@ -27,11 +26,10 @@ export default async function LeagueLayout({
   const features = config?.features ?? [];
 
   return (
-    <div className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav backHref="/dashboard" backLabel="Dashboard" centerTitle={league.name} />
+    <div className="flex flex-col min-h-screen">
+      <AppNav backHref="/dashboard" backLabel="Dashboard" centerTitle={league.name} hideNav />
       <LeagueSubNav leagueId={id} features={features} />
       <div className="flex-1 flex flex-col">{children}</div>
-      <BottomNav />
     </div>
   );
 }
