@@ -311,7 +311,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       <div className="flex items-center justify-between gap-3 pt-2 pb-4">
         {prevRound ? (
           <button
-            onClick={() => { switchRound(prevRound.roundType); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            onClick={() => { switchRound(prevRound.roundType); requestAnimationFrame(() => window.scrollTo(0, 0)); }}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
           >
             ← {prevRound.roundName}
@@ -321,7 +321,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
         )}
         {nextRound ? (
           <button
-            onClick={() => { switchRound(nextRound.roundType); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            onClick={() => { switchRound(nextRound.roundType); requestAnimationFrame(() => window.scrollTo(0, 0)); }}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-secondary/60 transition-colors"
           >
             {nextRound.roundName} →
