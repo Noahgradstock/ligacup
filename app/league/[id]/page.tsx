@@ -96,19 +96,22 @@ export default async function LeaguePage({
       <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
         <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="max-w-2xl mx-auto relative flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-            {members.length} deltagare
-          </span>
-          <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
-            ⚽ VM 2026
-          </span>
-          {entryFee && entryFee > 0 && (
-            <span className="inline-flex items-center gap-1.5 bg-[#e6a800]/15 text-[#e6a800] text-xs px-3 py-1.5 rounded-full border border-[#e6a800]/25 font-medium">
-              🏅 Insats {entryFee} kr/p · Pott {entryFee * members.length} kr
+        <div className="max-w-2xl mx-auto relative flex flex-col gap-4">
+          <h1 className="text-2xl font-bold text-white tracking-tight">{league.name}</h1>
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+              {members.length} deltagare
             </span>
-          )}
+            <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
+              ⚽ VM 2026
+            </span>
+            {entryFee && entryFee > 0 && (
+              <span className="inline-flex items-center gap-1.5 bg-[#e6a800]/15 text-[#e6a800] text-xs px-3 py-1.5 rounded-full border border-[#e6a800]/25 font-medium">
+                🏅 Insats {entryFee} kr/p · Pott {entryFee * members.length} kr
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
