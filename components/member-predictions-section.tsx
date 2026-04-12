@@ -46,6 +46,7 @@ type Props = {
   top3: Top3Entry[];
   allTeams: TeamOption[];
   groups: string[]; // e.g. ["Grupp A", "Grupp B", ...]
+  hideTop3?: boolean; // when true, omit the VM Top 3 chip (already shown elsewhere)
 };
 
 type Filter = "nearest" | "top3" | string; // string = group name
@@ -97,9 +98,17 @@ export function MemberPredictionsSection({
   top3: initialTop3,
   allTeams,
   groups,
+  hideTop3 = false,
 }: Props) {
   const storageKey = `allas-tips-filter-${leagueId}`;
   const [filter, setFilter] = useState<Filter>(() => {
+    if (!hasMatchScores || hideTop3) {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem(storageKey) as Filter | null;
+        if (saved && saved !== "top3") return saved;
+      }
+      return "nearest";
+    }
     if (!hasMatchScores) return "top3";
     if (typeof window === "undefined") return "nearest";
     return (localStorage.getItem(storageKey) as Filter) ?? "nearest";
@@ -167,10 +176,10 @@ export function MemberPredictionsSection({
 
   const topChips: { key: Filter; label: string }[] = hasMatchScores
     ? [
-        { key: "top3", label: "VM Top 3" },
+        ...(!hideTop3 ? [{ key: "top3" as Filter, label: "VM Top 3" }] : []),
         { key: "nearest", label: "Närmast" },
       ]
-    : [{ key: "top3", label: "VM Top 3" }];
+    : (!hideTop3 ? [{ key: "top3" as Filter, label: "VM Top 3" }] : []);
 
   function Chip({ chipKey, label }: { chipKey: Filter; label: string }) {
     return (
@@ -382,10 +391,10 @@ export function MemberPredictionsSection({
                     </div>
                   </div>
 
-                  {/* Predictions row */}
-                  <div className="px-3 py-2.5 flex flex-wrap gap-2">
+                  {/* Predictions */}
+                  <div className="divide-y divide-border">
                     {match.predictions.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">Inga tips</span>
+                      <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
                     ) : (
                       match.predictions.map((pred) => {
                         const member = memberMap.get(pred.userId);
@@ -397,14 +406,19 @@ export function MemberPredictionsSection({
                           match.awayScore,
                           match.isResultConfirmed
                         );
+                        const isMe = member.userId === currentUserId;
                         return (
                           <div
                             key={pred.userId}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border border-border text-xs font-medium ${cls || "bg-secondary/50"}`}
-                            title={memberLabel(member)}
+                            className={`flex items-center justify-between px-3 py-2 ${isMe ? "bg-primary/5" : ""}`}
                           >
-                            <MemberAvatar m={member} size={4} />
-                            <span className="tabular-nums">
+                            <div className="flex items-center gap-2">
+                              <MemberAvatar m={member} size={5} />
+                              <span className={`text-xs font-medium ${isMe ? "text-primary" : ""}`}>
+                                {memberLabel(member)}
+                              </span>
+                            </div>
+                            <span className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded ${cls || "bg-secondary/60"}`}>
                               {pred.home}–{pred.away}
                             </span>
                           </div>

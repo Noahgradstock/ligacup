@@ -249,12 +249,6 @@ export default async function ComparePage({
       .map((r) => r.groupName)
       .filter((g): g is string => g !== null)
       .sort();
-  } else {
-    // allTeams needed for Top 3 edit dropdown
-    allTeams = await db
-      .select({ id: teams.id, name: teams.name, countryCode: teams.countryCode })
-      .from(teams)
-      .orderBy(teams.name);
   }
 
   return (
@@ -278,21 +272,24 @@ export default async function ComparePage({
         hasTopScorer={hasTopScorer}
         hasYellowCards={hasYellowCards}
       />
-      <MemberPredictionsSection
-        leagueId={id}
-        currentUserId={dbUser?.id ?? null}
-        hasMatchScores={hasMatchScores}
-        members={members.map((m) => ({
-          userId: m.userId,
-          displayName: m.displayName,
-          email: m.email,
-          avatarUrl: m.avatarUrl ?? null,
-        }))}
-        lockedMatches={lockedMatches}
-        top3={top3ForSection}
-        allTeams={allTeams}
-        groups={groups}
-      />
+      {hasMatchScores && (
+        <MemberPredictionsSection
+          leagueId={id}
+          currentUserId={dbUser?.id ?? null}
+          hasMatchScores={hasMatchScores}
+          hideTop3
+          members={members.map((m) => ({
+            userId: m.userId,
+            displayName: m.displayName,
+            email: m.email,
+            avatarUrl: m.avatarUrl ?? null,
+          }))}
+          lockedMatches={lockedMatches}
+          top3={top3ForSection}
+          allTeams={allTeams}
+          groups={groups}
+        />
+      )}
     </div>
   );
 }
