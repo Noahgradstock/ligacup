@@ -66,6 +66,8 @@ export default function NewLeaguePage() {
   const [yellowCardsPoints, setYellowCardsPoints] = useState(5);
 
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [entryFeeOption, setEntryFeeOption] = useState<"none" | "100" | "200" | "500" | "custom">("none");
+  const [customEntryFee, setCustomEntryFee] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [attempted, setAttempted] = useState(false);
@@ -104,6 +106,11 @@ export default function NewLeaguePage() {
     setStatus("saving");
     setErrorMsg("");
 
+    const entryFee =
+      entryFeeOption === "none" ? null
+      : entryFeeOption === "custom" ? (parseInt(customEntryFee) || null)
+      : parseInt(entryFeeOption);
+
     const res = await fetch("/api/leagues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -114,6 +121,7 @@ export default function NewLeaguePage() {
         features: Array.from(enabledFeatures),
         scoring: { exactScore, correctWinner, correctDraw, topScorerPoints, yellowCardsPoints },
         bannerUrl,
+        entryFee,
       }),
     });
 
@@ -417,6 +425,63 @@ export default function NewLeaguePage() {
             </div>
           </section>
         )}
+
+        {/* ── 7: Entry fee (optional) ── */}
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Insats per person <span className="font-normal normal-case tracking-normal">(valfri)</span>
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Definiera potten i förväg — alla i laget ser beloppet.
+            </p>
+          </div>
+
+          {/* Quick-select chips */}
+          <div className="flex flex-wrap gap-2">
+            {(["none", "100", "200", "500", "custom"] as const).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setEntryFeeOption(opt)}
+                className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                  entryFeeOption === opt
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-secondary/50"
+                }`}
+              >
+                {opt === "none" ? "Ingen insats" : opt === "custom" ? "Eget belopp" : `${opt} kr`}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom amount input */}
+          {entryFeeOption === "custom" && (
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={100000}
+                value={customEntryFee}
+                onChange={(e) => setCustomEntryFee(e.target.value)}
+                placeholder="Ange belopp"
+                className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-40 tabular-nums"
+              />
+              <span className="text-sm text-muted-foreground font-medium">kr / person</span>
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <div className="flex items-start gap-2.5 rounded-lg bg-secondary/40 border border-border px-4 py-3">
+            <span className="text-base shrink-0 mt-0.5">ℹ️</span>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">Frivilligt.</span>{" "}
+              Ligacup samlar varken in eller hanterar pengar. Insatsen visas
+              enbart som information för deltagarna — hur ni löser betalningen
+              sköter ni själva.
+            </p>
+          </div>
+        </section>
 
         {status === "error" && (
           <p className="text-sm text-destructive -mt-4">{errorMsg}</p>

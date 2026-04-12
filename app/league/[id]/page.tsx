@@ -87,6 +87,9 @@ export default async function LeaguePage({
     return m.displayName ?? m.email.split("@")[0];
   }
 
+  const config = league.configJson as { features?: string[]; scoring?: object; entryFee?: number } | null;
+  const entryFee = config?.entryFee ?? null;
+
   return (
     <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-10">
       {/* Meta */}
@@ -94,6 +97,20 @@ export default async function LeaguePage({
         <p className="text-sm text-muted-foreground">
           {members.length} deltagare · VM 2026
         </p>
+        {entryFee && entryFee > 0 && (
+          <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 w-fit">
+            <span className="text-base">🏅</span>
+            <div className="text-xs">
+              <span className="font-semibold text-amber-800 dark:text-amber-400">
+                Insats: {entryFee} kr/person
+              </span>
+              <span className="text-amber-700/70 dark:text-amber-500/70 mx-1.5">·</span>
+              <span className="text-amber-700/70 dark:text-amber-500/70">
+                Pott: {entryFee * members.length} kr
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live leaderboard */}

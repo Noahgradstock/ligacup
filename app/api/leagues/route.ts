@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     features?: string[];
     scoring?: { exactScore: number; correctWinner: number; correctDraw: number; topScorerPoints?: number; yellowCardsPoints?: number };
     bannerUrl?: string | null;
+    entryFee?: number | null;
   };
   try {
     body = await request.json();
@@ -104,7 +105,13 @@ export async function POST(request: Request) {
       maxMembers,
       isPublic,
       bannerUrl,
-      configJson: { features, scoring },
+      configJson: {
+        features,
+        scoring,
+        ...(typeof body.entryFee === "number" && body.entryFee > 0
+          ? { entryFee: Math.min(100000, Math.floor(body.entryFee)) }
+          : {}),
+      },
     })
     .returning();
 
