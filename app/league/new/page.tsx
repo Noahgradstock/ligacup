@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
-import { LogoWordmark } from "@/components/logo-wordmark";
+import { PageNav } from "@/components/page-nav";
 
 type Privacy = "private" | "public";
 
@@ -136,15 +135,7 @@ export default function NewLeaguePage() {
 
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/dashboard" className="text-xl">
-          <LogoWordmark />
-        </Link>
-        <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-          ← Tillbaka
-        </Link>
-      </nav>
+      <PageNav backHref="/dashboard" />
 
       <form onSubmit={create} className="max-w-lg mx-auto w-full px-6 py-10 flex flex-col gap-10">
 

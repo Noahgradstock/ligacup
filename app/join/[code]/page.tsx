@@ -1,10 +1,9 @@
 import { eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { leagues, leagueMembers } from "@/lib/db/schema";
 import { JoinButton } from "./join-button";
-import { LogoWordmark } from "@/components/logo-wordmark";
+import { AppNav } from "@/components/app-nav";
 
 export default async function JoinPage({
   params,
@@ -29,11 +28,7 @@ export default async function JoinPage({
 
   return (
     <main className="flex flex-col min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <Link href="/" className="text-xl">
-          <LogoWordmark />
-        </Link>
-      </nav>
+      <AppNav backHref="/dashboard" hideNav />
 
       <div className="max-w-md mx-auto w-full px-6 py-16 flex flex-col gap-8 text-center">
         <div className="flex flex-col gap-3">

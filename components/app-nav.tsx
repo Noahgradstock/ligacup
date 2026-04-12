@@ -36,36 +36,35 @@ export async function AppNav({ backHref, backLabel, centerTitle, rightSlot, hide
 
   return (
     <nav className="relative flex items-center justify-between px-6 h-14 border-b border-border">
-      {/* Left — logo or back link */}
-      <Link
-        href={backHref ?? "/dashboard"}
-        className="font-bold text-xl tracking-tight shrink-0"
-      >
-        {backLabel ? (
-          <span className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors">
-            ← {backLabel}
-          </span>
-        ) : (
-          <LogoWordmark />
-        )}
+      {/* Left — always logo */}
+      <Link href="/dashboard" className="font-bold text-xl tracking-tight shrink-0">
+        <LogoWordmark />
       </Link>
 
-      {/* Center — desktop: Facebook-style icon nav | mobile: league title */}
+      {/* Center — desktop: icon nav | mobile: page/league title */}
       {clerkId && !hideNav && <DesktopCenterNav unreadCount={unreadCount} />}
-
       {centerTitle && (
         <span className="sm:hidden absolute left-1/2 -translate-x-1/2 text-base font-bold truncate max-w-[40%] text-center pointer-events-none">
           {centerTitle}
         </span>
       )}
 
-      {/* Right — notification bell (mobile only) + any extra slot */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Right — back link OR notification bell (mobile only) */}
+      <div className="flex items-center gap-3 shrink-0">
         {rightSlot}
-        {clerkId && !hideNav && (
-          <div className="sm:hidden">
-            <NotificationBell initialCount={unreadCount} />
-          </div>
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← {backLabel ?? "Tillbaka"}
+          </Link>
+        ) : (
+          clerkId && !hideNav && (
+            <div className="sm:hidden">
+              <NotificationBell initialCount={unreadCount} />
+            </div>
+          )
         )}
       </div>
     </nav>

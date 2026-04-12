@@ -22,7 +22,7 @@ export default async function PredictionsPage() {
   if (leagueIds.length === 0) {
     return (
       <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-        <AppNav backHref="/dashboard" backLabel="Dashboard" />
+        <AppNav backHref="/dashboard" />
         <div className="max-w-2xl mx-auto w-full px-4 py-16 flex flex-col items-center gap-4 text-center">
           <p className="text-lg font-semibold">Du är inte med i något tipslag</p>
           <p className="text-muted-foreground text-sm">
@@ -61,7 +61,7 @@ export default async function PredictionsPage() {
 
   return (
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
-      <AppNav backHref="/dashboard" backLabel="Dashboard" />
+      <AppNav backHref="/dashboard" />
       <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Välj tipslag</h1>
