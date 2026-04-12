@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { eq, and, inArray, lt } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -169,7 +169,6 @@ export default async function ComparePage({
   if (hasMatchScores) {
     const homeTeam = alias(teams, "home_team");
     const awayTeam = alias(teams, "away_team");
-    const now = new Date();
 
     const lockedMatchRows = await db
       .select({
@@ -191,8 +190,7 @@ export default async function ComparePage({
       .where(
         and(
           eq(matches.tournamentId, league.tournamentId),
-          eq(tournamentRounds.roundType, "GROUP"),
-          lt(matches.scheduledAt, now)
+          eq(tournamentRounds.roundType, "GROUP")
         )
       )
       .orderBy(matches.scheduledAt);

@@ -139,12 +139,17 @@ export function MemberPredictionsSection({
   const filteredMatches = (() => {
     if (filter === "top3") return [];
     if (filter === "nearest") {
-      // 5 most recently locked (closest to now from the past)
+      // 5 matches closest to now — upcoming first, then most recent past
+      const now = Date.now();
+      const upcoming = [...lockedMatches]
+        .filter((m) => new Date(m.scheduledAt).getTime() >= now)
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        .slice(0, 5);
+      if (upcoming.length > 0) return upcoming;
+      // Fallback: no upcoming matches — show 5 most recently played
       return [...lockedMatches]
-        .sort(
-          (a, b) =>
-            new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
-        )
+        .filter((m) => new Date(m.scheduledAt).getTime() < now)
+        .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
         .slice(0, 5);
     }
     // Group filter
@@ -356,15 +361,20 @@ export function MemberPredictionsSection({
           {filteredMatches.length === 0 ? (
             <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
               {filter === "nearest"
-                ? "Inga låsta matcher ännu — tips visas när matcherna börjar."
-                : "Inga låsta matcher i denna grupp ännu."}
+                ? "Inga matcher hittades."
+                : "Inga matcher i denna grupp."}
             </div>
           ) : (
             filteredMatches.map((match) => {
               const date = new Date(match.scheduledAt);
+              const isUpcoming = date.getTime() > Date.now();
               const dateStr = date.toLocaleDateString("sv-SE", {
                 day: "numeric",
                 month: "short",
+              });
+              const timeStr = date.toLocaleTimeString("sv-SE", {
+                hour: "2-digit",
+                minute: "2-digit",
               });
 
               return (
@@ -380,13 +390,15 @@ export function MemberPredictionsSection({
                       {toFlag(match.awayTeamCode)} {match.awayTeamName}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
-                      {match.isResultConfirmed && match.homeScore !== null && (
+                      {match.isResultConfirmed && match.homeScore !== null ? (
                         <span className="text-xs font-bold text-primary">
                           {match.homeScore}–{match.awayScore}
                         </span>
-                      )}
+                      ) : isUpcoming ? (
+                        <span className="text-xs text-muted-foreground">{timeStr}</span>
+                      ) : null}
                       <span className="text-xs text-muted-foreground">
-                        {match.groupName ?? ""} · {dateStr}
+                        {match.groupName ? `Grupp ${match.groupName}` : ""} · {dateStr}
                       </span>
                     </div>
                   </div>
