@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { FullPred } from "@/lib/predictor/winner";
 
+// Prevent more than 2 digits in score inputs (max 99)
+function clamp2(e: React.FormEvent<HTMLInputElement>) {
+  const el = e.currentTarget;
+  if (el.value.length > 2) el.value = el.value.slice(0, 2);
+}
+
 type Props = {
   matchId: string;
   leagueId: string;
@@ -291,6 +297,7 @@ export function MatchCard({
               min={0}
               max={99}
               value={homeVal}
+              onInput={clamp2}
               onChange={(e) => { onHomeChange(e.target.value); setStatus("idle"); }}
               onFocus={(e) => e.target.select()}
               className="w-12 h-12 text-center rounded-lg border border-border bg-background text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
@@ -303,6 +310,7 @@ export function MatchCard({
               min={0}
               max={99}
               value={awayVal}
+              onInput={clamp2}
               onChange={(e) => { onAwayChange(e.target.value); setStatus("idle"); }}
               onFocus={(e) => e.target.select()}
               className="w-12 h-12 text-center rounded-lg border border-border bg-background text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
@@ -384,6 +392,7 @@ export function MatchCard({
                 min={0}
                 max={99}
                 value={home}
+                onInput={clamp2}
                 onChange={(e) => { setHome(e.target.value); setStatus("idle"); }}
                 onFocus={(e) => e.target.select()}
                 className="w-12 h-12 text-center rounded-lg border border-border bg-background text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
@@ -396,6 +405,7 @@ export function MatchCard({
                 min={0}
                 max={99}
                 value={away}
+                onInput={clamp2}
                 onChange={(e) => { setAway(e.target.value); setStatus("idle"); }}
                 onFocus={(e) => e.target.select()}
                 className="w-12 h-12 text-center rounded-lg border border-border bg-background text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
