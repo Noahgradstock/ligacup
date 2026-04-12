@@ -13,8 +13,12 @@ export const metadata: Metadata = {
   description:
     "Skapa ett privat tipslag, förutsäg matchresultat och tävla om äran med dina vänner. Gratis att använda.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     siteName: "Ligacup.se",
