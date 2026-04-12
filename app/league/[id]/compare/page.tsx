@@ -300,13 +300,14 @@ export default async function ComparePage({
   }
 
   // Knockout matches (for SLUTSPEL comparison section)
-  const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL"];
+  const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL", "THIRD_PLACE"];
   const ROUND_NAME_DISPLAY: Record<string, string> = {
     ROUND_OF_32: "Sextondelsfinaler",
     ROUND_OF_16: "Åttondelsfinaler",
     QF: "Kvartsfinal",
     SF: "Semifinal",
     FINAL: "Final",
+    THIRD_PLACE: "Bronsmatch",
   };
 
   // Derived top 3 from bracket (populated below when hasMatchScores)
@@ -437,6 +438,7 @@ export default async function ComparePage({
         if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
         if (slot.startsWith("VK")) return `V. kvartsfinalmatch ${slot.slice(2)}`;
         if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
+        if (slot.startsWith("VB")) return `F. semifinal ${slot.slice(2)}`;
         return slot;
       }
 
@@ -474,17 +476,20 @@ export default async function ComparePage({
             : (awaySlot ? slotMap.get(awaySlot) ?? null : null);
           perUser.set(member.userId, { home: homeTeam, away: awayTeam });
           // Determine predicted winner and extend slot map for downstream rounds
-          if (winnerSlot) {
-            const koPred = memberKoPredMaps.get(member.userId)?.get(kMatch.matchId);
-            if (koPred) {
-              const isHome = predWinnerIsHome({
-                home: koPred.home, away: koPred.away,
-                homeET: koPred.homeET, awayET: koPred.awayET,
-                homePen: koPred.homePen, awayPen: koPred.awayPen,
-              });
-              if (isHome !== null) {
-                const winner = isHome ? homeTeam : awayTeam;
-                if (winner) slotMap.set(winnerSlot, winner);
+          const koPred = memberKoPredMaps.get(member.userId)?.get(kMatch.matchId);
+          if (koPred) {
+            const isHome = predWinnerIsHome({
+              home: koPred.home, away: koPred.away,
+              homeET: koPred.homeET, awayET: koPred.awayET,
+              homePen: koPred.homePen, awayPen: koPred.awayPen,
+            });
+            if (isHome !== null) {
+              const winner = isHome ? homeTeam : awayTeam;
+              if (winner && winnerSlot) slotMap.set(winnerSlot, winner);
+              // For SF matches also track the loser — they play in the bronze match
+              if (round.roundType === "SF") {
+                const loser = isHome ? awayTeam : homeTeam;
+                if (loser) slotMap.set(`VB${kMatch.matchNumber ?? 0}`, loser);
               }
             }
           }
@@ -513,6 +518,26 @@ export default async function ComparePage({
               second: isHome ? resolved.away : resolved.home,
               third: null,
             });
+          }
+        }
+      }
+
+      // ── Derive 3rd from the THIRD_PLACE (bronze) match prediction ─────────────
+      const thirdPlaceRound = knockoutRoundRows.find((r) => r.roundType === "THIRD_PLACE");
+      if (thirdPlaceRound) {
+        const bronzeMatch = knockoutMatchRows.find((m) => m.roundId === thirdPlaceRound.id);
+        if (bronzeMatch) {
+          for (const entry of derivedTop3) {
+            const resolved = matchResolvedTeams.get(bronzeMatch.matchId)?.get(entry.userId);
+            const pred = memberKoPredMaps.get(entry.userId)?.get(bronzeMatch.matchId);
+            if (!resolved || !pred) continue;
+            const isHome = predWinnerIsHome({
+              home: pred.home, away: pred.away,
+              homeET: pred.homeET, awayET: pred.awayET,
+              homePen: pred.homePen, awayPen: pred.awayPen,
+            });
+            if (isHome === null) continue;
+            entry.third = isHome ? resolved.home : resolved.away;
           }
         }
       }
@@ -550,10 +575,16 @@ export default async function ComparePage({
         };
       });
 
-      knockoutRounds = knockoutRoundRows.map((r) => ({
-        roundType: r.roundType,
-        roundName: ROUND_NAME_DISPLAY[r.roundType] ?? r.name,
-      }));
+      // THIRD_PLACE matches appear in the FINAL tab — no separate tab for them.
+      const hasThirdPlace = knockoutRoundRows.some((r) => r.roundType === "THIRD_PLACE");
+      knockoutRounds = knockoutRoundRows
+        .filter((r) => r.roundType !== "THIRD_PLACE")
+        .map((r) => ({
+          roundType: r.roundType,
+          roundName: r.roundType === "FINAL" && hasThirdPlace
+            ? "Final/bronsmatch"
+            : (ROUND_NAME_DISPLAY[r.roundType] ?? r.name),
+        }));
     }
   }
 

@@ -50,7 +50,8 @@ const ROUND_COMPACT: Record<string, string> = {
   ROUND_OF_16: "Åttondels",
   QF: "Kvartsfinal",
   SF: "Semifinal",
-  FINAL: "Final",
+  FINAL: "Final/brons",
+  THIRD_PLACE: "Bronsmatch",
 };
 
 const SESSION_KEY = "bracket-active-round";
@@ -74,6 +75,7 @@ function slotLabel(slot: string | null): string {
   if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
   if (slot.startsWith("VK")) return `V. kvartsfinal ${slot.slice(2)}`;
   if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
+  if (slot.startsWith("VB")) return `F. semifinal ${slot.slice(2)}`;
   if (/^[123][A-L]/.test(slot)) {
     const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
     return `${pos} ${slot.slice(1)}`;
@@ -146,6 +148,11 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       if (winner) {
         map.set(winnerSlotKey(m.roundType, m.matchNumber), winner);
       }
+      // For SF matches also track the loser — they play in the bronze match
+      if (m.roundType === "SF") {
+        const loser = winnerIsHome ? away : home;
+        if (loser) map.set(`VB${m.matchNumber}`, loser);
+      }
     }
     return map;
   }, [matches, predMap, initialSlotMap]);
@@ -168,7 +175,10 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
     });
   }, [matches, slotMap]);
 
-  const activeMatches = resolvedMatches.filter((m) => m.roundType === activeRound);
+  // THIRD_PLACE (bronsmatch) is shown inside the FINAL tab — no separate tab.
+  const activeMatches = resolvedMatches.filter(
+    (m) => m.roundType === activeRound || (activeRound === "FINAL" && m.roundType === "THIRD_PLACE")
+  );
   const activeRoundMeta = rounds.find((r) => r.roundType === activeRound);
 
   const activeRoundIndex = rounds.findIndex((r) => r.roundType === activeRound);
@@ -178,9 +188,12 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
   // Count tips per round for badge.
   // Use predMap only (initialized from server existingHome, updated on saves/clears).
   // Do NOT fall back to m.existingHome — that would keep counting cleared predictions.
+  // FINAL count includes THIRD_PLACE matches.
   const tipsByRound = new Map<string, number>();
   for (const r of rounds) {
-    const roundMatches = matches.filter((m) => m.roundType === r.roundType);
+    const roundMatches = matches.filter(
+      (m) => m.roundType === r.roundType || (r.roundType === "FINAL" && m.roundType === "THIRD_PLACE")
+    );
     const tipped = roundMatches.filter((m) => predMap.has(m.matchId)).length;
     tipsByRound.set(r.roundType, tipped);
   }
@@ -353,7 +366,9 @@ function BracketOverview({
       <div className="overflow-x-auto">
         <div className="flex gap-0 min-w-max p-3">
           {rounds.map((r, ri) => {
-            const roundMatches = matches.filter((m) => m.roundType === r.roundType);
+            const roundMatches = matches.filter(
+              (m) => m.roundType === r.roundType || (r.roundType === "FINAL" && m.roundType === "THIRD_PLACE")
+            );
             return (
               <div key={r.roundType} className="flex items-center">
                 <div className="flex flex-col gap-2 min-w-[110px] px-1">

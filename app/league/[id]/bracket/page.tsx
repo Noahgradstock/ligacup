@@ -45,10 +45,11 @@ function formatSlotLabel(slot: string | null): string {
   if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
   if (slot.startsWith("VK")) return `V. kvartsfinal ${slot.slice(2)}`;
   if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
+  if (slot.startsWith("VB")) return `F. semifinal ${slot.slice(2)}`;
   return slot;
 }
 
-const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL"];
+const KNOCKOUT_ROUND_TYPES = ["ROUND_OF_32", "ROUND_OF_16", "QF", "SF", "FINAL", "THIRD_PLACE"];
 
 export default async function BracketPage({
   params,
@@ -341,10 +342,17 @@ export default async function BracketPage({
       //   R32 / R16 winners → "VM{matchNumber}"  (used by R16 / QF venues)
       //   QF winners        → "VK{matchNumber}"  (used by SF venues)
       //   SF winners        → "VS{matchNumber}"  (used by Final venue)
+      //   SF losers         → "VB{matchNumber}"  (used by bronze match venue)
       const prefix = round.roundType === "QF" ? "VK"
                    : round.roundType === "SF" ? "VS"
                    : "VM";
       slotTeamMap.set(`${prefix}${match.matchNumber}`, winner);
+
+      // For SF matches also track the loser — they play in the bronze match
+      if (round.roundType === "SF") {
+        const loser = winnerIsHome ? resolvedAway : resolvedHome;
+        if (loser) slotTeamMap.set(`VB${match.matchNumber}`, loser);
+      }
     }
   }
 
@@ -353,6 +361,7 @@ export default async function BracketPage({
   const ROUND_NAME_CORRECT: Record<string, string> = {
     ROUND_OF_32: "Sextondelsfinaler",
     ROUND_OF_16: "Åttondelsfinaler",
+    THIRD_PLACE: "Bronsmatch",
   };
 
   const now = new Date();
@@ -411,10 +420,16 @@ export default async function BracketPage({
   // names for matches that depend on group predictions, without a page reload.
   const initialSlotMap = Object.fromEntries(slotTeamMap);
 
-  const rounds = knockoutRounds.map((r) => ({
-    roundType: r.roundType,
-    roundName: ROUND_NAME_CORRECT[r.roundType] ?? r.name,
-  }));
+  // THIRD_PLACE matches are shown inside the FINAL tab — don't add a separate tab for them.
+  const hasThirdPlace = knockoutRounds.some((r) => r.roundType === "THIRD_PLACE");
+  const rounds = knockoutRounds
+    .filter((r) => r.roundType !== "THIRD_PLACE")
+    .map((r) => ({
+      roundType: r.roundType,
+      roundName: r.roundType === "FINAL" && hasThirdPlace
+        ? "Final/bronsmatch"
+        : (ROUND_NAME_CORRECT[r.roundType] ?? r.name),
+    }));
 
   return (
     <div className="flex flex-col">

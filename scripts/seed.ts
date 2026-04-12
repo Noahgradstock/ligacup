@@ -273,11 +273,12 @@ async function main() {
 
   // Knockout rounds
   const knockoutRoundDefs = [
-    { name: "Sextondelsfinaler", roundType: "ROUND_OF_32", sequenceOrder: 13, deadline: new Date("2026-06-27T20:59:00Z") },
-    { name: "Åttondelsfinaler",  roundType: "ROUND_OF_16", sequenceOrder: 14, deadline: new Date("2026-07-03T20:59:00Z") },
-    { name: "Kvartsfinaler",     roundType: "QF",           sequenceOrder: 15, deadline: new Date("2026-07-07T20:59:00Z") },
-    { name: "Semifinaler",       roundType: "SF",           sequenceOrder: 16, deadline: new Date("2026-07-11T20:59:00Z") },
-    { name: "Final",             roundType: "FINAL",        sequenceOrder: 17, deadline: new Date("2026-07-18T20:59:00Z") },
+    { name: "Sextondelsfinaler", roundType: "ROUND_OF_32",   sequenceOrder: 13, deadline: new Date("2026-06-27T20:59:00Z") },
+    { name: "Åttondelsfinaler",  roundType: "ROUND_OF_16",   sequenceOrder: 14, deadline: new Date("2026-07-03T20:59:00Z") },
+    { name: "Kvartsfinaler",     roundType: "QF",            sequenceOrder: 15, deadline: new Date("2026-07-07T20:59:00Z") },
+    { name: "Semifinaler",       roundType: "SF",            sequenceOrder: 16, deadline: new Date("2026-07-11T20:59:00Z") },
+    { name: "Final",             roundType: "FINAL",         sequenceOrder: 17, deadline: new Date("2026-07-18T20:59:00Z") },
+    { name: "Bronsmatch",        roundType: "THIRD_PLACE",   sequenceOrder: 18, deadline: new Date("2026-07-18T14:59:00Z") },
   ];
 
   let knockoutRounds = existingKnockoutRounds;
@@ -295,7 +296,26 @@ async function main() {
       )
       .returning();
   }
-  const roundByKnockout = Object.fromEntries(knockoutRounds.map((r) => [r.roundType, r]));
+  let roundByKnockout = Object.fromEntries(knockoutRounds.map((r) => [r.roundType, r]));
+
+  // Insert THIRD_PLACE (bronsmatch) if it doesn't exist yet — existing DBs that were
+  // seeded before this round was added need this upsert on the next seed run.
+  if (!roundByKnockout["THIRD_PLACE"]) {
+    const [thirdPlaceRound] = await db
+      .insert(tournamentRounds)
+      .values({
+        tournamentId: tournament.id,
+        name: "Bronsmatch",
+        roundType: "THIRD_PLACE",
+        sequenceOrder: 18,
+        predictionDeadline: new Date("2026-07-18T14:59:00Z"),
+      })
+      .returning();
+    knockoutRounds = [...knockoutRounds, thirdPlaceRound];
+    roundByKnockout = Object.fromEntries(knockoutRounds.map((r) => [r.roundType, r]));
+    console.log("✅ THIRD_PLACE round inserted");
+  }
+
   console.log(`✅ Knockout rounds: ${knockoutRounds.length}`);
 
   // ── 5. Group stage matches (72 total) ─────────────────────────────────────
@@ -340,11 +360,12 @@ async function main() {
   // seed never deletes existing rows — the UUID and any linked predictions are
   // preserved. Only roundId/scheduledAt/venue are updated if they changed.
   if (knockoutRounds.length > 0) {
-    const r32  = roundByKnockout["ROUND_OF_32"];
-    const r16  = roundByKnockout["ROUND_OF_16"];
-    const qf   = roundByKnockout["QF"];
-    const sf   = roundByKnockout["SF"];
-    const fin  = roundByKnockout["FINAL"];
+    const r32    = roundByKnockout["ROUND_OF_32"];
+    const r16    = roundByKnockout["ROUND_OF_16"];
+    const qf     = roundByKnockout["QF"];
+    const sf     = roundByKnockout["SF"];
+    const fin    = roundByKnockout["FINAL"];
+    const bronze = roundByKnockout["THIRD_PLACE"];
 
     const knockoutMatchRows = [
       // ── Round of 32 (16 matches) — official FIFA WC 2026 bracket ──
@@ -388,7 +409,11 @@ async function main() {
       { roundId: sf.id,  matchNumber: 102, scheduledAt: new Date("2026-07-17T19:00:00Z"), venue: JSON.stringify({ homeSlot: "VK99",  awaySlot: "VK100" }) },
 
       // ── Final ──
-      { roundId: fin.id, matchNumber: 103, scheduledAt: new Date("2026-07-19T18:00:00Z"), venue: JSON.stringify({ homeSlot: "VS101", awaySlot: "VS102" }) },
+      { roundId: fin.id,    matchNumber: 103, scheduledAt: new Date("2026-07-19T18:00:00Z"), venue: JSON.stringify({ homeSlot: "VS101",  awaySlot: "VS102"  }) },
+
+      // ── Bronze match (3rd place) — losers of the two semi-finals ──
+      // VB101 = loser of SF match 101, VB102 = loser of SF match 102
+      ...(bronze ? [{ roundId: bronze.id, matchNumber: 104, scheduledAt: new Date("2026-07-18T15:00:00Z"), venue: JSON.stringify({ homeSlot: "VB101", awaySlot: "VB102" }) }] : []),
     ];
 
     const rows = knockoutMatchRows.map((m) => ({

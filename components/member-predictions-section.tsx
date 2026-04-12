@@ -379,9 +379,12 @@ export function MemberPredictionsSection({
     return lockedMatches.filter((m) => m.groupName === filter);
   })();
 
-  // Derive filtered knockout matches
+  // Derive filtered knockout matches.
+  // THIRD_PLACE (bronsmatch) has no separate tab — it shows inside the FINAL tab.
   const filteredKnockoutMatches = isKnockoutFilter
-    ? knockoutMatches.filter((m) => m.roundType === filter)
+    ? knockoutMatches.filter(
+        (m) => m.roundType === filter || (filter === "FINAL" && m.roundType === "THIRD_PLACE")
+      )
     : [];
 
   async function saveTop3() {
