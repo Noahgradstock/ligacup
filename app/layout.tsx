@@ -8,10 +8,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://ligacup.se";
+
 export const metadata: Metadata = {
   title: "Ligacup.se — Tipslag för VM 2026",
   description:
     "Skapa ett privat tipslag, förutsäg matchresultat och tävla om äran med dina vänner. Gratis att använda.",
+  metadataBase: new URL(APP_URL),
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -21,8 +24,19 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
+    title: "Ligacup.se — Tipslag för VM 2026",
+    description:
+      "Skapa ett privat tipslag, förutsäg matchresultat och tävla om äran med dina vänner. Gratis att använda.",
     siteName: "Ligacup.se",
     locale: "sv_SE",
+    type: "website",
+    url: APP_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ligacup.se — Tipslag för VM 2026",
+    description:
+      "Skapa ett privat tipslag, förutsäg matchresultat och tävla om äran med dina vänner. Gratis att använda.",
   },
 };
 
