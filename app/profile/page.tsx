@@ -41,18 +41,26 @@ export default async function ProfilePage() {
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
-      <div className="max-w-md mx-auto w-full px-4 py-10 flex flex-col gap-8">
-        {/* Avatar + name */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
-            {initials}
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-bold">{user.displayName ?? user.email.split("@")[0]}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-md mx-auto relative flex items-center gap-4">
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatarUrl} alt={initials} className="w-14 h-14 rounded-full object-cover border-2 border-white/20 shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl font-bold text-white shrink-0">
+              {initials}
+            </div>
+          )}
+          <div>
+            <p className="text-xl font-bold text-white leading-tight">{user.displayName ?? user.email.split("@")[0]}</p>
+            <p className="text-sm text-white/50 mt-0.5">{user.email}</p>
           </div>
         </div>
+      </section>
 
+      <div className="max-w-md mx-auto w-full px-4 py-8 flex flex-col gap-8">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[

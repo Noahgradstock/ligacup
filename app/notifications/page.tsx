@@ -159,20 +159,25 @@ export default async function NotificationsPage() {
     <main className="flex flex-col min-h-screen pb-20 sm:pb-0">
       <AppNav />
 
-      <div className="max-w-2xl mx-auto w-full px-4 py-10 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Notifikationer</h1>
+      <section className="relative bg-[#0d1f3c] px-6 py-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="max-w-2xl mx-auto relative flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Notifikationer</h1>
           {rows.length > 0 && (
             <form action={clearAllNotifications}>
               <button
                 type="submit"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-white/50 hover:text-white/80 transition-colors"
               >
                 Rensa alla
               </button>
             </form>
           )}
         </div>
+      </section>
+
+      <div className="max-w-2xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-muted-foreground text-sm">

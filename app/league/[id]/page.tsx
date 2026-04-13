@@ -185,7 +185,7 @@ export default async function LeaguePage({
                   )}
                 </span>
                 {dbUser && m.userId === dbUser.id && (
-                  <ShareTipsButton />
+                  <ShareTipsButton leagueId={id} inviteUrl={inviteUrl} />
                 )}
               </div>
             ))}
