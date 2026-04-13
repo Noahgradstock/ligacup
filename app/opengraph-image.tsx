@@ -33,13 +33,16 @@ export default function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div
             style={{
+              display: "flex",
+              flexWrap: "wrap",
               fontSize: 76,
               fontWeight: 800,
               color: "white",
               lineHeight: 1.05,
+              gap: "0 16px",
             }}
           >
-            Tipsa VM 2026 med{" "}
+            <span>Tipsa VM 2026 med</span>
             <span style={{ color: "#e6a800" }}>dina vänner</span>
           </div>
           <div
