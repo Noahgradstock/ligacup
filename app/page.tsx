@@ -5,71 +5,68 @@ import { LogoWordmark } from "@/components/logo-wordmark";
 export default function LandingPage() {
   return (
     <main className="flex flex-col min-h-screen">
-      {/* ── Dark navy header (nav + hero) ── */}
-      <header className="relative bg-[#0d1f3c] overflow-hidden">
-        <div className="pointer-events-none absolute -top-12 -right-12 w-64 h-64 rounded-full bg-[#e6a800]/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-blue-500/10 blur-3xl" />
+      {/* ── Dark navy nav ── */}
+      <div className="bg-[#0d1f3c] w-full">
+      <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
+        <span className="text-xl text-white">
+          <LogoWordmark />
+        </span>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white/70 hover:text-white hover:bg-white/10 border-0"
+            >
+              Logga in
+            </Button>
+          </Link>
+          <Link href="/league/new">
+            <Button
+              size="sm"
+              className="border border-white/20 text-white bg-transparent hover:bg-white/10"
+            >
+              Kom igång
+            </Button>
+          </Link>
+        </div>
+      </nav>
+      </div>
 
-        {/* Nav */}
-        <nav className="relative flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
-          <span className="text-xl">
-            <LogoWordmark />
-          </span>
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white/70 hover:text-white hover:bg-white/10 border-0"
-              >
-                Logga in
-              </Button>
-            </Link>
-            <Link href="/league/new">
-              <Button
-                size="sm"
-                className="border border-white/20 text-white bg-transparent hover:bg-white/10"
-              >
-                Kom igång
-              </Button>
-            </Link>
-          </div>
-        </nav>
+      {/* ── Hero — white ── */}
+      <section className="flex flex-col items-center text-center px-6 pt-16 pb-24 gap-6 max-w-5xl mx-auto w-full">
+        <div className="inline-flex items-center gap-2 bg-secondary text-muted-foreground text-sm px-3 py-1 rounded-full border border-border">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          VM 2026 börjar 11 juni — 10 veckor kvar
+        </div>
 
-        {/* Hero */}
-        <section className="relative flex flex-col items-center text-center px-6 pt-16 pb-24 gap-6 max-w-5xl mx-auto w-full">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white/70 text-sm px-3 py-1 rounded-full border border-white/10">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            VM 2026 börjar 11 juni — 10 veckor kvar
-          </div>
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-2xl leading-tight text-foreground">
+          Tipsa VM 2026 med{" "}
+          <span className="text-[#e6a800]">dina vänner</span>
+        </h1>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-2xl leading-tight text-white">
-            Tipsa VM 2026 med{" "}
-            <span className="text-[#e6a800]">dina vänner</span>
-          </h1>
+        <p className="text-muted-foreground text-lg max-w-xl">
+          Skapa ett privat tipslag, förutsäg alla matcher, och se vem som har koll på fotboll.
+          Gratis. Inga insatser — bara äran.
+        </p>
 
-          <p className="text-white/60 text-lg max-w-xl">
-            Skapa ett privat tipslag, förutsäg alla matcher, och se vem som har koll på fotboll.
-            Gratis. Inga insatser — bara äran.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/league/new">
-              <Button size="lg" className="text-base px-8">
-                Skapa tipslag gratis
-              </Button>
-            </Link>
-            <Link href="/join">
-              <Button
-                size="lg"
-                className="text-base px-8 border border-white/20 text-white bg-transparent hover:bg-white/10"
-              >
-                Gå med i ett lag
-              </Button>
-            </Link>
-          </div>
-        </section>
-      </header>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link href="/league/new">
+            <Button size="lg" className="text-base px-8">
+              Skapa tipslag gratis
+            </Button>
+          </Link>
+          <Link href="/join">
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-base px-8"
+            >
+              Gå med i ett lag
+            </Button>
+          </Link>
+        </div>
+      </section>
 
       {/* ── Feature pills ── */}
       <section className="border-b border-border px-6 py-12">
