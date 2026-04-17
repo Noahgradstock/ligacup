@@ -16,7 +16,7 @@ export default function LandingPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10 border-0"
+              className="text-white hover:bg-white/10 border border-white/40"
             >
               Logga in
             </Button>
