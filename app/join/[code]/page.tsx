@@ -70,26 +70,59 @@ export default async function JoinPage({
     .from(leagueMembers)
     .where(eq(leagueMembers.leagueId, league.id));
 
+  const bannerUrl = league.bannerUrl;
+
   return (
     <main className="flex flex-col min-h-screen">
       <AppNav backHref="/dashboard" hideNav />
 
-      <div className="max-w-md mx-auto w-full px-6 py-16 flex flex-col gap-8 text-center">
-        <div className="flex flex-col gap-3">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl mx-auto">
-            ⚽
+      {/* Hero */}
+      <section className="relative bg-[#0d1f3c] overflow-hidden">
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute -top-10 -right-10 w-56 h-56 rounded-full bg-[#e6a800]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl" />
+
+        {/* Banner image overlay */}
+        {bannerUrl && (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bannerUrl})` }}
+          >
+            <div className="absolute inset-0 bg-[#0d1f3c]/70" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
-          <p className="text-muted-foreground text-sm">
-            {members.length} {members.length === 1 ? "deltagare" : "deltagare"} · VM 2026
+        )}
+
+        <div className="relative max-w-lg mx-auto px-6 py-10 flex flex-col gap-2">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-widest">
+            VM 2026 tipslag
+          </p>
+          <h1 className="text-3xl font-bold text-white tracking-tight leading-tight">
+            {league.name}
+          </h1>
+          <p className="text-white/55 text-sm mt-1">
+            {members.length === 0
+              ? "Var först att gå med!"
+              : `${members.length} ${members.length === 1 ? "deltagare" : "deltagare"} redan med`}
           </p>
         </div>
+      </section>
 
-        <JoinButton code={upperCode} leagueId={league.id} />
+      {/* Join card */}
+      <div className="max-w-lg mx-auto w-full px-6 py-10 flex flex-col gap-6">
+        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-base font-semibold">Gå med och tippa</h2>
+            <p className="text-sm text-muted-foreground">
+              Förutsäg alla VM-matcher och slutspelet. Gratis — inga insatser, bara äran.
+            </p>
+          </div>
 
-        <p className="text-xs text-muted-foreground">
-          Inbjudningskod: <span className="font-mono font-semibold">{upperCode}</span>
-        </p>
+          <JoinButton code={upperCode} leagueId={league.id} />
+
+          <p className="text-xs text-muted-foreground text-center">
+            Inbjudningskod: <span className="font-mono font-semibold">{upperCode}</span>
+          </p>
+        </div>
       </div>
     </main>
   );
