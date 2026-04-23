@@ -1,11 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { users, notifications, leagues } from "@/lib/db/schema";
 import { AppNav } from "@/components/app-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
+import { t } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 
 function getIcon(type: string): string {
   switch (type) {
@@ -72,24 +75,24 @@ function formatPayload(
   return "Ny notifikation";
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, locale: Locale): string {
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "Just nu";
-  if (mins < 60) return `${mins} min sedan`;
+  if (mins < 1) return locale === "en" ? "just now" : "Just nu";
+  if (mins < 60) return `${mins} ${locale === "en" ? "min ago" : "min sedan"}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h sedan`;
-  return `${Math.floor(hours / 24)}d sedan`;
+  if (hours < 24) return `${hours}h ${locale === "en" ? "ago" : "sedan"}`;
+  return `${Math.floor(hours / 24)}d ${locale === "en" ? "ago" : "sedan"}`;
 }
 
-function getDayLabel(date: Date): string {
+function getDayLabel(date: Date, locale: Locale): string {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const diff = todayStart - dateStart;
-  if (diff === 0) return "Idag";
-  if (diff === 86_400_000) return "Igår";
-  return "Tidigare";
+  if (diff === 0) return t("today", locale);
+  if (diff === 86_400_000) return t("yesterday", locale);
+  return t("earlier", locale);
 }
 
 async function clearAllNotifications() {
@@ -104,6 +107,8 @@ async function clearAllNotifications() {
 
 export default async function NotificationsPage() {
   const { userId: clerkId } = await auth();
+  const cookieJar = await cookies();
+  const locale = (cookieJar.get("ligacup_locale")?.value ?? "sv") as Locale;
 
   const [user] = clerkId
     ? await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
@@ -146,7 +151,7 @@ export default async function NotificationsPage() {
   // Group by day label
   const groups: { label: string; items: typeof rows }[] = [];
   for (const n of rows) {
-    const label = getDayLabel(n.createdAt);
+    const label = getDayLabel(n.createdAt, locale);
     const existing = groups.find((g) => g.label === label);
     if (existing) {
       existing.items.push(n);
@@ -163,14 +168,14 @@ export default async function NotificationsPage() {
         <div className="pointer-events-none absolute -top-8 -right-8 w-44 h-44 rounded-full bg-[#e6a800]/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="max-w-2xl mx-auto relative flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Notifikationer</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t("notificationsTitle", locale)}</h1>
           {rows.length > 0 && (
             <form action={clearAllNotifications}>
               <button
                 type="submit"
                 className="text-xs text-white/50 hover:text-white/80 transition-colors"
               >
-                Rensa alla
+                {t("clearAll", locale)}
               </button>
             </form>
           )}
@@ -181,7 +186,7 @@ export default async function NotificationsPage() {
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-muted-foreground text-sm">
-            Inga notifikationer ännu.
+            {locale === "en" ? "No notifications yet." : "Inga notifikationer ännu."}
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -211,14 +216,14 @@ export default async function NotificationsPage() {
                         <p className="text-sm">{text}</p>
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-xs text-muted-foreground">
-                            {timeAgo(n.createdAt)}
+                            {timeAgo(n.createdAt, locale)}
                           </span>
                           {leagueId && n.type !== "member_joined" && (
                             <Link
                               href={`/league/${leagueId}`}
                               className="text-xs text-primary hover:underline"
                             >
-                              {n.type === "mention" ? "Visa chatten →" : "Visa tabellen →"}
+                              {n.type === "mention" ? t("viewChat", locale) : t("viewStandings", locale)}
                             </Link>
                           )}
                         </div>

@@ -1,5 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import {
   leagues,
@@ -14,6 +15,8 @@ import { DeleteLeagueButton } from "./delete-league-button";
 import { ShareTipsButton } from "./share-tips-button";
 import { syncCurrentUser } from "@/lib/sync-user";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
+import { t } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 
 export default async function LeaguePage({
   params,
@@ -84,6 +87,9 @@ export default async function LeaguePage({
   const isMember = dbUser ? members.some((m) => m.userId === dbUser.id) : false;
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/join/${league.inviteCode}`;
 
+  const cookieJar = await cookies();
+  const locale = (cookieJar.get("ligacup_locale")?.value ?? dbUser?.locale ?? "sv") as Locale;
+
   function displayLabel(m: { displayName: string | null; email: string }) {
     return m.displayName ?? m.email.split("@")[0];
   }
@@ -97,7 +103,12 @@ export default async function LeaguePage({
   const features = config?.features ?? [];
   const scoring = config?.scoring ?? {};
 
-  const FEATURE_LABELS: Record<string, string> = {
+  const FEATURE_LABELS: Record<string, string> = locale === "en" ? {
+    match_scores: "⚽ Match results",
+    tournament_winner: "🏆 World Cup Top 3",
+    top_scorer: "👟 Top scorer",
+    most_yellow_cards: "🟨 Most yellow cards",
+  } : {
     match_scores: "⚽ Matchresultat",
     tournament_winner: "🏆 VM Top 3",
     top_scorer: "👟 Skyttekung",
@@ -105,11 +116,19 @@ export default async function LeaguePage({
   };
 
   const scoringParts: string[] = [];
-  if (scoring.exactScore != null) scoringParts.push(`Exakt: ${scoring.exactScore}p`);
-  if (scoring.correctWinner != null) scoringParts.push(`Rätt utgång: ${scoring.correctWinner}p`);
-  if (scoring.topScorerPoints != null && features.includes("top_scorer")) scoringParts.push(`Skyttekung: ${scoring.topScorerPoints}p`);
-  if (scoring.yellowCardsPoints != null && features.includes("most_yellow_cards")) scoringParts.push(`Gula kort: ${scoring.yellowCardsPoints}p`);
-  if (entryFee && entryFee > 0) scoringParts.push(`Insats: ${entryFee} kr/p`);
+  if (locale === "en") {
+    if (scoring.exactScore != null) scoringParts.push(`Exact: ${scoring.exactScore}pts`);
+    if (scoring.correctWinner != null) scoringParts.push(`Correct result: ${scoring.correctWinner}pts`);
+    if (scoring.topScorerPoints != null && features.includes("top_scorer")) scoringParts.push(`Top scorer: ${scoring.topScorerPoints}pts`);
+    if (scoring.yellowCardsPoints != null && features.includes("most_yellow_cards")) scoringParts.push(`Yellow cards: ${scoring.yellowCardsPoints}pts`);
+    if (entryFee && entryFee > 0) scoringParts.push(`Entry: ${entryFee} kr/p`);
+  } else {
+    if (scoring.exactScore != null) scoringParts.push(`Exakt: ${scoring.exactScore}p`);
+    if (scoring.correctWinner != null) scoringParts.push(`Rätt utgång: ${scoring.correctWinner}p`);
+    if (scoring.topScorerPoints != null && features.includes("top_scorer")) scoringParts.push(`Skyttekung: ${scoring.topScorerPoints}p`);
+    if (scoring.yellowCardsPoints != null && features.includes("most_yellow_cards")) scoringParts.push(`Gula kort: ${scoring.yellowCardsPoints}p`);
+    if (entryFee && entryFee > 0) scoringParts.push(`Insats: ${entryFee} kr/p`);
+  }
 
   return (
     <div className="flex flex-col">
@@ -132,7 +151,7 @@ export default async function LeaguePage({
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-              {members.length} deltagare
+              {members.length} {t("membersLabel", locale)}
             </span>
             <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/70 text-xs px-3 py-1.5 rounded-full border border-white/10">
               ⚽ VM 2026
@@ -150,7 +169,7 @@ export default async function LeaguePage({
       <div className="max-w-2xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
         {/* Live leaderboard */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tabell</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("navStandings", locale)}</h2>
           <Leaderboard
             leagueId={id}
             currentUserId={dbUser?.id ?? null}
@@ -161,8 +180,8 @@ export default async function LeaguePage({
         {/* Members */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Deltagare</h2>
-            <span className="text-xs text-muted-foreground">{members.length} st</span>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("participantsHeader", locale)}</h2>
+            <span className="text-xs text-muted-foreground">{members.length}</span>
           </div>
           <div className="flex flex-col gap-1">
             {members.map((m) => (
@@ -181,7 +200,7 @@ export default async function LeaguePage({
                 <span className="text-sm flex-1">
                   {displayLabel(m)}
                   {dbUser && m.userId === dbUser.id && (
-                    <span className="ml-2 text-xs text-muted-foreground">(du)</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{t("youSuffix", locale)}</span>
                   )}
                 </span>
                 {dbUser && m.userId === dbUser.id && (
@@ -196,8 +215,10 @@ export default async function LeaguePage({
         {isMember && (
           <section className="rounded-xl border border-border bg-secondary/30 px-5 py-5 flex flex-col gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Bjud in</p>
-              <p className="text-xs text-muted-foreground mt-1">Dela länken eller koden med dina vänner.</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("inviteButton", locale)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {locale === "en" ? "Share the link or code with your friends." : "Dela länken eller koden med dina vänner."}
+              </p>
             </div>
             <div className="flex gap-2">
               <input
@@ -208,7 +229,7 @@ export default async function LeaguePage({
               <CopyButton text={inviteUrl} />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Kod:</span>
+              <span className="text-xs text-muted-foreground">{locale === "en" ? "Code:" : "Kod:"}</span>
               <span className="text-sm font-bold font-mono tracking-widest">{league.inviteCode}</span>
             </div>
           </section>
@@ -217,7 +238,7 @@ export default async function LeaguePage({
         {/* Rules */}
         {(features.length > 0 || scoringParts.length > 0) && (
           <section className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Regler</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("rulesButton", locale)}</h2>
             <div className="rounded-xl border border-border bg-card px-4 py-4 flex flex-col gap-3">
               {features.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">

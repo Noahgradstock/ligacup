@@ -1,5 +1,8 @@
 "use client";
 
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
+
 type Member = {
   userId: string;
   displayName: string | null;
@@ -52,6 +55,7 @@ export function CompareView({
   hasTopScorer,
   hasYellowCards,
 }: Props) {
+  const locale = useLocale();
   // Build lookup maps
   const top3Map = new Map(top3.map((t) => [t.userId, t]));
   const topScorerMap = new Map(
@@ -80,7 +84,7 @@ export function CompareView({
     return (
       <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
         <p className="text-muted-foreground text-sm">
-          Inga tips gjorda ännu — var först med att sätta ditt VM-tips!
+          {t("noPicksYetCompare", locale)}
         </p>
       </div>
     );
@@ -144,7 +148,7 @@ export function CompareView({
           <thead>
             <tr className="border-b border-border bg-secondary/50">
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
-                Deltagare
+                {t("participantsHeader", locale)}
               </th>
               {columns.map((col) => (
                 <th
@@ -184,7 +188,7 @@ export function CompareView({
                       )}
                       <span className={`font-medium truncate max-w-[120px] ${isCurrentUser ? "text-primary" : ""}`}>
                         {member.displayName ?? member.email}
-                        {isCurrentUser && <span className="text-xs font-normal text-muted-foreground ml-1">(du)</span>}
+                        {isCurrentUser && <span className="text-xs font-normal text-muted-foreground ml-1">{t("youSuffix", locale)}</span>}
                       </span>
                     </div>
                   </td>
@@ -222,7 +226,7 @@ export function CompareView({
       {/* Legend */}
       <div className="px-4 py-2.5 bg-secondary/30 border-t border-border flex items-center gap-2">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" />
-        <span className="text-xs text-muted-foreground">Flera deltagare tippar samma</span>
+        <span className="text-xs text-muted-foreground">{t("multiplePickedSame", locale)}</span>
       </div>
     </div>
   );

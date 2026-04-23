@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 type LeagueCard = {
   id: string;
@@ -17,6 +19,7 @@ type LeagueCard = {
 
 
 function DeleteModal({ league, onClose }: { league: LeagueCard; onClose: () => void }) {
+  const locale = useLocale();
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "deleting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -41,20 +44,21 @@ function DeleteModal({ league, onClose }: { league: LeagueCard; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-background rounded-xl border border-border w-full max-w-md flex flex-col gap-5 p-6 shadow-xl">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold text-destructive">Ta bort tipslag</h2>
+          <h2 className="text-lg font-bold text-destructive">{t("deleteLeagueTitle", locale)}</h2>
           <p className="text-sm text-muted-foreground">
-            Detta går inte att ångra. Alla medlemmar, poäng och chattar raderas permanent.
+            {t("deleteLeagueWarning", locale)}
           </p>
         </div>
 
         <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3 text-sm text-destructive">
-          Du håller på att ta bort <strong>{league.name}</strong> med {league.memberCount}{" "}
-          {league.memberCount === 1 ? "deltagare" : "deltagare"}.
+          {locale === "en"
+            ? <>You are about to delete <strong>{league.name}</strong> with {league.memberCount} {league.memberCount === 1 ? "member" : "members"}.</>
+            : <>Du håller på att ta bort <strong>{league.name}</strong> med {league.memberCount} deltagare.</>}
         </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">
-            Skriv <span className="font-mono font-bold">{league.name}</span> för att bekräfta
+            {t("deleteLeagueConfirmLabel", locale)} <span className="font-mono font-bold">{league.name}</span> {t("deleteLeagueConfirmSuffix", locale)}
           </label>
           <input
             type="text"
@@ -75,14 +79,14 @@ function DeleteModal({ league, onClose }: { league: LeagueCard; onClose: () => v
             onClick={onClose}
             className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
           >
-            Avbryt
+            {t("cancel", locale)}
           </button>
           <button
             onClick={handleDelete}
             disabled={!confirmed || status === "deleting"}
             className="flex-1 py-2.5 rounded-lg bg-destructive text-white text-sm font-medium disabled:opacity-40 hover:bg-destructive/90 transition-colors"
           >
-            {status === "deleting" ? "Tar bort..." : "Ta bort permanent"}
+            {status === "deleting" ? t("deleting", locale) : t("deleteLeaguePermanent", locale)}
           </button>
         </div>
       </div>
@@ -91,6 +95,7 @@ function DeleteModal({ league, onClose }: { league: LeagueCard; onClose: () => v
 }
 
 export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
+  const locale = useLocale();
   const [deletingLeague, setDeletingLeague] = useState<LeagueCard | null>(null);
 
   return (
@@ -119,8 +124,8 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm truncate">{card.name}</p>
               <p className="text-xs text-muted-foreground">
-                {card.memberCount} {card.memberCount === 1 ? "deltagare" : "deltagare"}
-                {card.matchesPlayed > 0 ? ` · ${card.matchesPlayed} matcher spelade` : " · Tippa nu!"}
+                {card.memberCount} {t("membersLabel", locale)}
+                {card.matchesPlayed > 0 ? ` · ${card.matchesPlayed} ${t("matchesPlayed", locale)}` : ` · ${t("predictNow", locale)}`}
               </p>
             </div>
 
@@ -129,7 +134,7 @@ export function LeagueCardList({ cards }: { cards: LeagueCard[] }) {
               <div>
                 <p className="text-base font-bold tabular-nums leading-none">{card.totalPoints}p</p>
                 {card.rankInLeague && (
-                  <p className="text-xs text-muted-foreground mt-0.5">Plats {card.rankInLeague}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t("place", locale)} {card.rankInLeague}</p>
                 )}
               </div>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0">

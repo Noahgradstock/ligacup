@@ -2,20 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
-const BASE_TABS = [
-  { id: "tabell", label: "Tabell", href: (id: string) => `/league/${id}` },
-  { id: "tippa", label: "Grupptips", href: (id: string) => `/league/${id}/predictions`, requiresMatchScores: true },
-  { id: "slutspel", label: "Slutspel", href: (id: string) => `/league/${id}/bracket`, requiresMatchScores: true },
-  { id: "bonustips", label: "Bonustips", href: (id: string) => `/league/${id}/bonus`, requiresBonusFeature: true },
-  { id: "jamfor", label: "Jämför", href: (id: string) => `/league/${id}/compare` },
-  { id: "chatt", label: "Chatt", href: (id: string) => `/league/${id}/chat` },
-];
+function getBaseTabs(locale: ReturnType<typeof useLocale>) {
+  return [
+    { id: "tabell", label: t("navStandings", locale), href: (id: string) => `/league/${id}` },
+    { id: "tippa", label: t("navGroupPicks", locale), href: (id: string) => `/league/${id}/predictions`, requiresMatchScores: true },
+    { id: "slutspel", label: t("navKnockout", locale), href: (id: string) => `/league/${id}/bracket`, requiresMatchScores: true },
+    { id: "bonustips", label: t("navBonusPicks", locale), href: (id: string) => `/league/${id}/bonus`, requiresBonusFeature: true },
+    { id: "jamfor", label: t("navCompare", locale), href: (id: string) => `/league/${id}/compare` },
+    { id: "chatt", label: t("navChat", locale), href: (id: string) => `/league/${id}/chat` },
+  ];
+}
 
 const BONUS_FEATURES = ["top_scorer", "most_yellow_cards"];
 
 export function LeagueSubNav({ leagueId, features = [] }: { leagueId: string; features?: string[] }) {
   const pathname = usePathname();
+  const locale = useLocale();
+  const BASE_TABS = getBaseTabs(locale);
   const hasMatchScores = features.includes("match_scores");
   const hasBonusFeature = features.some((f) => BONUS_FEATURES.includes(f));
 

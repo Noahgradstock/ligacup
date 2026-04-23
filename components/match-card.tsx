@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { FullPred } from "@/lib/predictor/winner";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 // Prevent more than 2 digits in score inputs (max 99)
 function clamp2(e: React.FormEvent<HTMLInputElement>) {
@@ -88,6 +90,7 @@ export function MatchCard({
   const [committedAwayPen, setCommittedAwayPen] = useState<number | null>(savedAwayPen ?? null);
 
   const router = useRouter();
+  const locale = useLocale();
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     savedHome !== null ? "saved" : "idle"
   );
@@ -320,7 +323,7 @@ export function MatchCard({
           <div className="flex-1" />
         </div>
         {noDraw && showDrawError && (
-          <p className="text-[11px] text-destructive text-center">Oavgjort är inte tillåtet i straffar</p>
+          <p className="text-[11px] text-destructive text-center">{t("drawNotAllowedInPenalties", locale)}</p>
         )}
       </div>
     );
@@ -369,19 +372,19 @@ export function MatchCard({
                 </div>
               ) : (
                 <div className="px-3 py-1.5 rounded-lg bg-muted">
-                  <span className="text-xs text-muted-foreground">Pågår</span>
+                  <span className="text-xs text-muted-foreground">{t("matchLive", locale)}</span>
                 </div>
               )}
               {hasPrediction && (
                 <span className="text-xs font-mono tabular-nums text-muted-foreground">
-                  Ditt tips: {committedHome}–{committedAway}
+                  {t("yourPick", locale)} {committedHome}–{committedAway}
                   {committedHomeET !== null && committedAwayET !== null && (
                     <> (FT: {committedHomeET}–{committedAwayET}{committedHomePen !== null && committedAwayPen !== null && `, str: ${committedHomePen}–${committedAwayPen}`})</>
                   )}
                 </span>
               )}
               {!hasPrediction && (
-                <span className="text-xs text-muted-foreground">Inget tips</span>
+                <span className="text-xs text-muted-foreground">{t("noPick", locale)}</span>
               )}
             </div>
           ) : (
@@ -426,7 +429,7 @@ export function MatchCard({
       {!isLocked && showET && (
         <div className="px-4 pb-3 border-t border-border/60 pt-3 flex flex-col gap-3">
           <ScoreRow
-            label="Förlängning"
+            label={t("extraTime", locale)}
             homeVal={homeET}
             awayVal={awayET}
             onHomeChange={setHomeET}
@@ -435,7 +438,7 @@ export function MatchCard({
           {/* Penalty section — appears when ET is also a draw */}
           {showPen && (
             <ScoreRow
-              label="Straffar"
+              label={t("penalties", locale)}
               homeVal={homePen}
               awayVal={awayPen}
               onHomeChange={setHomePen}
@@ -464,12 +467,12 @@ export function MatchCard({
             }`}
           >
             {status === "saving"
-              ? "Sparar..."
+              ? t("saving", locale)
               : savedAndClean
-              ? "Sparat ✓"
+              ? t("saved", locale)
               : status === "error"
-              ? "Fel — försök igen"
-              : "Spara"}
+              ? t("saveError", locale)
+              : t("save", locale)}
           </button>
         </div>
       )}
@@ -481,18 +484,18 @@ export function MatchCard({
             onClick={toggleOthers}
             className="w-full px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-between"
           >
-            <span>Visa alla tips</span>
+            <span>{t("showAllPicks", locale)}</span>
             <span className="text-base leading-none">{showOthers ? "−" : "+"}</span>
           </button>
 
           {showOthers && (
             <div className="px-4 pb-3 flex flex-col gap-1.5">
               {loadingOthers && (
-                <p className="text-xs text-muted-foreground py-2 text-center">Laddar...</p>
+                <p className="text-xs text-muted-foreground py-2 text-center">{t("loading", locale)}</p>
               )}
               {!loadingOthers && others && others.length === 0 && (
                 <p className="text-xs text-muted-foreground py-2 text-center">
-                  Inga tips lagda.
+                  {t("noPicksPlaced", locale)}
                 </p>
               )}
               {!loadingOthers && others && others.map((p, i) => {
@@ -505,7 +508,7 @@ export function MatchCard({
                     }`}
                   >
                     <span className={`text-xs font-medium truncate max-w-[120px] ${p.isCurrentUser ? "text-primary" : ""}`}>
-                      {p.displayName}{p.isCurrentUser && " (du)"}
+                      {p.displayName}{p.isCurrentUser && ` ${t("youSuffix", locale)}`}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-mono tabular-nums text-foreground">

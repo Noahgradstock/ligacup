@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSSE } from "@/hooks/use-sse";
 import type { ChatMessage } from "@/app/api/leagues/[id]/messages/route";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 type Props = {
   leagueId: string;
@@ -12,6 +14,7 @@ type Props = {
 };
 
 export function ChatRoom({ leagueId, currentUserId, initial }: Props) {
+  const locale = useLocale();
   const [msgs, setMsgs] = useState<ChatMessage[]>(initial);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -89,7 +92,7 @@ export function ChatRoom({ leagueId, currentUserId, initial }: Props) {
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1">
         {msgs.length === 0 && (
           <p className="text-center text-muted-foreground text-sm py-10">
-            Inga meddelanden ännu. Säg hej!
+            {t("noMessagesYet", locale)}
           </p>
         )}
         {grouped.map((msg) => (
@@ -101,7 +104,7 @@ export function ChatRoom({ leagueId, currentUserId, initial }: Props) {
           >
             {msg.isFirst && (
               <span className="text-xs text-muted-foreground mb-1 px-1">
-                {msg.isMe ? "Du" : msg.displayName}
+                {msg.isMe ? t("youChat", locale) : msg.displayName}
               </span>
             )}
             <div className="flex items-end gap-1.5">
@@ -130,7 +133,7 @@ export function ChatRoom({ leagueId, currentUserId, initial }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Skriv ett meddelande..."
+          placeholder={t("writeMessage", locale)}
           rows={1}
           maxLength={500}
           className="flex-1 resize-none rounded-xl border border-border bg-secondary px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
@@ -142,7 +145,7 @@ export function ChatRoom({ leagueId, currentUserId, initial }: Props) {
           disabled={sending || !text.trim()}
           className="rounded-xl shrink-0"
         >
-          Skicka
+          {t("send", locale)}
         </Button>
       </div>
     </div>

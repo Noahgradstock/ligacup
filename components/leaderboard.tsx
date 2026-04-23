@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import { useSSE } from "@/hooks/use-sse";
 import type { LeaderboardEntry } from "@/app/api/leagues/[id]/leaderboard/route";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 type Props = {
   leagueId: string;
@@ -13,6 +15,7 @@ type Props = {
 export function Leaderboard({ leagueId, currentUserId, initial }: Props) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>(initial);
   const [flash, setFlash] = useState(false);
+  const locale = useLocale();
 
   const refetch = useCallback(async () => {
     try {
@@ -37,7 +40,7 @@ export function Leaderboard({ leagueId, currentUserId, initial }: Props) {
   if (entries.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-muted-foreground text-sm">
-        Inga poäng ännu. Poäng beräknas när matchresultat bekräftas.
+        {t("noPointsYet", locale)}
       </div>
     );
   }
@@ -67,7 +70,7 @@ export function Leaderboard({ leagueId, currentUserId, initial }: Props) {
             )}
             <span className="flex-1 text-sm font-medium">
               {label}
-              {isMe && <span className="ml-2 text-xs text-primary">(du)</span>}
+              {isMe && <span className="ml-2 text-xs text-primary">{t("youSuffix", locale)}</span>}
             </span>
             <span className="text-sm font-bold tabular-nums">{entry.totalPoints}p</span>
           </div>

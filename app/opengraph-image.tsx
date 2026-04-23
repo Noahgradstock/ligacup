@@ -42,7 +42,7 @@ export default function Image() {
               gap: "0 16px",
             }}
           >
-            <span>Tipsa VM 2026 med</span>
+            <span>Tippa VM 2026 med</span>
             <span style={{ color: "#e6a800" }}>dina vänner</span>
           </div>
           <div

@@ -2,6 +2,8 @@
 
 import { useState, useTransition, useEffect } from "react";
 import type { Top3Entry } from "@/app/api/leagues/[id]/top3/route";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 function toFlag(code: string | null) {
   if (!code) return "🏳";
@@ -144,6 +146,7 @@ function MatchCard({
   currentUserId: string | null;
   memberMap: Map<string, MemberInfo>;
 }) {
+  const locale = useLocale();
   const date = new Date(scheduledAt);
   const isUpcoming = date.getTime() > Date.now();
   const dateStr = date.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
@@ -175,7 +178,7 @@ function MatchCard({
       {/* Predictions */}
       <div className="divide-y divide-border">
         {preds.length === 0 ? (
-          <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
+          <p className="px-3 py-2.5 text-xs text-muted-foreground">{t("noPicksCard", locale)}</p>
         ) : (
           preds.map((pred) => {
             const member = memberMap.get(pred.userId);
@@ -232,6 +235,7 @@ function KnockoutMatchCard({
   currentUserId: string | null;
   memberMap: Map<string, MemberInfo>;
 }) {
+  const locale = useLocale();
   const date = new Date(scheduledAt);
   const isUpcoming = date.getTime() > Date.now();
   const dateStr = date.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
@@ -261,7 +265,7 @@ function KnockoutMatchCard({
 
       <div className="divide-y divide-border">
         {preds.length === 0 ? (
-          <p className="px-3 py-2.5 text-xs text-muted-foreground">Inga tips</p>
+          <p className="px-3 py-2.5 text-xs text-muted-foreground">{t("noPicksCard", locale)}</p>
         ) : (
           preds.map((pred) => {
             const member = memberMap.get(pred.userId);
@@ -319,6 +323,7 @@ export function MemberPredictionsSection({
   knockoutMatches = [],
   knockoutRounds = [],
 }: Props) {
+  const locale = useLocale();
   const storageKey = `allas-tips-filter-${leagueId}`;
   const [filter, setFilter] = useState<Filter>(() => {
     if (!hasMatchScores || hideTop3) {
@@ -412,10 +417,10 @@ export function MemberPredictionsSection({
 
   const topChips: { key: Filter; label: string }[] = hasMatchScores
     ? [
-        ...(!hideTop3 ? [{ key: "top3" as Filter, label: "VM Top 3" }] : []),
-        { key: "nearest", label: "Närmast" },
+        ...(!hideTop3 ? [{ key: "top3" as Filter, label: t("wcTop3Label", locale) }] : []),
+        { key: "nearest", label: t("nearestLabel", locale) },
       ]
-    : (!hideTop3 ? [{ key: "top3" as Filter, label: "VM Top 3" }] : []);
+    : (!hideTop3 ? [{ key: "top3" as Filter, label: t("wcTop3Label", locale) }] : []);
 
   function Chip({ chipKey, label }: { chipKey: Filter; label: string }) {
     return (
@@ -435,7 +440,7 @@ export function MemberPredictionsSection({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Allas tips</h2>
+        <h2 className="text-lg font-semibold">{t("allPicksTitle", locale)}</h2>
       </div>
 
       {/* Filter chips */}
@@ -451,7 +456,7 @@ export function MemberPredictionsSection({
         {hasMatchScores && groups.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
-              Grupper
+              {t("groupsLabel", locale)}
             </span>
             {groups.map((g) => (
               <Chip key={g} chipKey={g} label={g} />
@@ -463,7 +468,7 @@ export function MemberPredictionsSection({
         {knockoutRounds.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">
-              Slutspel
+              {t("navKnockout", locale)}
             </span>
             {knockoutRounds.map((r) => (
               <Chip key={r.roundType} chipKey={r.roundType} label={r.roundName} />
@@ -481,14 +486,14 @@ export function MemberPredictionsSection({
               onClick={() => setEditingTop3(true)}
               className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm text-primary font-medium text-left hover:bg-primary/10 transition-colors"
             >
-              + Sätt ditt VM-tips (1:a, 2:a, 3:a)
+              {t("setYourWCPick", locale)}
             </button>
           )}
 
           {/* Inline edit form */}
           {currentUserId && editingTop3 && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex flex-col gap-3">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide">Ditt VM-tips</p>
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide">{t("yourWCPickTitle", locale)}</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: "🥇 1:a", val: first, set: setFirst },
@@ -502,7 +507,7 @@ export function MemberPredictionsSection({
                       onChange={(e) => slot.set(e.target.value)}
                       className="rounded border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     >
-                      <option value="">Välj lag</option>
+                      <option value="">{t("selectTeamOption", locale)}</option>
                       {allTeams.map((t) => (
                         <option key={t.id} value={t.id}>
                           {toFlag(t.countryCode)} {t.name}
@@ -518,13 +523,13 @@ export function MemberPredictionsSection({
                   disabled={isPending}
                   className="px-4 py-1.5 rounded bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"
                 >
-                  {isPending ? "Sparar..." : "Spara"}
+                  {isPending ? t("saving", locale) : t("save", locale)}
                 </button>
                 <button
                   onClick={() => setEditingTop3(false)}
                   className="px-4 py-1.5 rounded border border-border text-xs font-medium text-muted-foreground"
                 >
-                  Avbryt
+                  {t("cancel", locale)}
                 </button>
               </div>
             </div>
@@ -534,13 +539,13 @@ export function MemberPredictionsSection({
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             {members.length === 0 ? (
               <p className="px-4 py-6 text-sm text-center text-muted-foreground">
-                Inga tips ännu.
+                {t("noPicksYetTable", locale)}
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-medium">Deltagare</th>
+                    <th className="px-3 py-2 text-left font-medium">{t("participantsHeader", locale)}</th>
                     <th className="px-2 py-2 text-center font-medium">🥇</th>
                     <th className="px-2 py-2 text-center font-medium">🥈</th>
                     <th className="px-2 py-2 text-center font-medium">🥉</th>
@@ -586,7 +591,7 @@ export function MemberPredictionsSection({
                                 onClick={() => setEditingTop3(true)}
                                 className="text-xs text-muted-foreground hover:text-foreground"
                               >
-                                Ändra
+                                {t("changeButton", locale)}
                               </button>
                             )}
                           </td>
@@ -605,7 +610,7 @@ export function MemberPredictionsSection({
             // Knockout round view
             filteredKnockoutMatches.length === 0 ? (
               <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
-                Inga matcher i denna runda.
+                {t("noMatchesInRoundShort", locale)}
               </div>
             ) : (
               filteredKnockoutMatches.map((match) => (
@@ -629,8 +634,8 @@ export function MemberPredictionsSection({
           ) : filteredMatches.length === 0 ? (
             <div className="rounded-lg border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
               {filter === "nearest"
-                ? "Inga matcher hittades."
-                : "Inga matcher i denna grupp."}
+                ? t("noMatchesFound", locale)
+                : t("noMatchesInGroup", locale)}
             </div>
           ) : (
             filteredMatches.map((match) => (
@@ -641,7 +646,7 @@ export function MemberPredictionsSection({
                 awayTeamName={match.awayTeamName}
                 awayTeamCode={match.awayTeamCode}
                 scheduledAt={match.scheduledAt}
-                label={match.groupName ? `Grupp ${match.groupName}` : ""}
+                label={match.groupName ? `${locale === "en" ? "Group" : "Grupp"} ${match.groupName}` : ""}
                 isResultConfirmed={match.isResultConfirmed}
                 homeScore={match.homeScore}
                 awayScore={match.awayScore}

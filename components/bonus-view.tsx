@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 type Member = {
   userId: string;
@@ -78,6 +80,7 @@ function TopScorerSection({
   predictions: BonusPred[];
   confirmed: ConfirmedResult | null;
 }) {
+  const locale = useLocale();
   const myPred = predictions.find((p) => p.userId === currentUserId && p.type === "top_scorer");
   const [value, setValue] = useState(myPred?.playerName ?? "");
   const [saved, setSaved] = useState(myPred?.playerName ?? "");
@@ -123,8 +126,10 @@ function TopScorerSection({
       <div className="flex items-center gap-2">
         <span className="text-xl">👟</span>
         <div>
-          <h2 className="text-base font-bold">Skyttekung</h2>
-          <p className="text-xs text-muted-foreground">Vilken spelare gör flest mål? • {points}p för rätt</p>
+          <h2 className="text-base font-bold">{t("topScorerTitle", locale)}</h2>
+          <p className="text-xs text-muted-foreground">
+            {locale === "en" ? `Which player scores the most goals? • ${points}pts correct` : `Vilken spelare gör flest mål? • ${points}p för rätt`}
+          </p>
         </div>
       </div>
 
@@ -132,7 +137,7 @@ function TopScorerSection({
         <div className="px-4 py-3 rounded-xl border border-green-200 bg-green-50/40 flex items-center gap-3">
           <span className="text-2xl">🏅</span>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Skyttekung</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{t("topScorerTitle", locale)}</p>
             <p className="text-base font-bold">{confirmed.playerName}</p>
           </div>
         </div>
@@ -142,7 +147,7 @@ function TopScorerSection({
             type="text"
             value={value}
             onChange={(e) => { setValue(e.target.value); setStatus("idle"); }}
-            placeholder="Skriv spelarens namn…"
+            placeholder={t("enterPlayerName", locale)}
             maxLength={100}
             className="rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
@@ -159,7 +164,7 @@ function TopScorerSection({
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
           >
-            {status === "saving" ? "Sparar…" : savedAndClean ? "Sparat ✓" : status === "error" ? "Fel — försök igen" : "Spara"}
+            {status === "saving" ? t("saving", locale) : savedAndClean ? t("saved", locale) : status === "error" ? t("saveError", locale) : t("save", locale)}
           </button>
         </div>
       ) : null}
@@ -167,7 +172,7 @@ function TopScorerSection({
       {scorerPreds.length > 0 && (
         <div className="rounded-xl border border-border overflow-hidden">
           <div className="px-4 py-2.5 bg-secondary/50 border-b border-border">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Allas tips</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("allPicksTitle", locale)}</span>
           </div>
           <div className="flex flex-col divide-y divide-border">
             {scorerPreds.map((p) => {
@@ -179,7 +184,7 @@ function TopScorerSection({
                 <div key={p.userId} className={`flex items-center gap-3 px-4 py-2.5 ${isMe ? "bg-primary/5" : ""}`}>
                   <MemberAvatar m={member} />
                   <span className={`text-sm flex-1 min-w-0 truncate font-medium ${isMe ? "text-primary" : ""}`}>
-                    {memberLabel(member)}{isMe && " (du)"}
+                    {memberLabel(member)}{isMe && ` ${t("youSuffix", locale)}`}
                   </span>
                   <span className="text-sm font-semibold truncate max-w-[140px]">{p.playerName}</span>
                   {isCorrect && <span className="text-green-600 font-bold text-xs">+{confirmed.pointsAwarded}p ✓</span>}
@@ -212,6 +217,7 @@ function YellowCardsSection({
   allTeams: TeamOption[];
   confirmed: ConfirmedResult | null;
 }) {
+  const locale = useLocale();
   const myPred = predictions.find((p) => p.userId === currentUserId && p.type === "most_yellow_cards");
   const [selectedId, setSelectedId] = useState(myPred?.teamId ?? "");
   const [savedId, setSavedId] = useState(myPred?.teamId ?? "");
@@ -262,8 +268,10 @@ function YellowCardsSection({
       <div className="flex items-center gap-2">
         <span className="text-xl">🟨</span>
         <div>
-          <h2 className="text-base font-bold">Flest gula kort</h2>
-          <p className="text-xs text-muted-foreground">Vilket lag får flest gula kort i hela turneringen? • {points}p för rätt</p>
+          <h2 className="text-base font-bold">{t("mostYellowTitle", locale)}</h2>
+          <p className="text-xs text-muted-foreground">
+            {locale === "en" ? `Which team gets the most yellow cards? • ${points}pts correct` : `Vilket lag får flest gula kort i hela turneringen? • ${points}p för rätt`}
+          </p>
         </div>
       </div>
 
@@ -271,7 +279,7 @@ function YellowCardsSection({
         <div className="px-4 py-3 rounded-xl border border-green-200 bg-green-50/40 flex items-center gap-3">
           <span className="text-2xl">{confirmed.teamFlag}</span>
           <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Flest gula kort</p>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{t("mostYellowTitle", locale)}</p>
             <p className="text-base font-bold">{confirmed.teamName}</p>
           </div>
         </div>
@@ -288,13 +296,13 @@ function YellowCardsSection({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Sök lag…"
+            placeholder={t("searchTeam", locale)}
             className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
           {search.length > 0 && (
             <div className="rounded-lg border border-border overflow-hidden max-h-48 overflow-y-auto">
               {filtered.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">Inga lag hittades.</p>
+                <p className="text-xs text-muted-foreground text-center py-3">{t("noTeamsFound", locale)}</p>
               ) : (
                 filtered.map((t) => (
                   <button
@@ -321,7 +329,7 @@ function YellowCardsSection({
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
               }`}
             >
-              {status === "saving" ? "Sparar…" : savedAndClean ? "Sparat ✓" : status === "error" ? "Fel — försök igen" : "Spara"}
+              {status === "saving" ? t("saving", locale) : savedAndClean ? t("saved", locale) : status === "error" ? t("saveError", locale) : t("save", locale)}
             </button>
           )}
         </div>
@@ -330,7 +338,7 @@ function YellowCardsSection({
       {yellowPreds.length > 0 && (
         <div className="rounded-xl border border-border overflow-hidden">
           <div className="px-4 py-2.5 bg-secondary/50 border-b border-border">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Allas tips</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("allPicksTitle", locale)}</span>
           </div>
           <div className="flex flex-col divide-y divide-border">
             {yellowPreds.map((p) => {
@@ -342,7 +350,7 @@ function YellowCardsSection({
                 <div key={p.userId} className={`flex items-center gap-3 px-4 py-2.5 ${isMe ? "bg-primary/5" : ""}`}>
                   <MemberAvatar m={member} />
                   <span className={`text-sm flex-1 min-w-0 truncate font-medium ${isMe ? "text-primary" : ""}`}>
-                    {memberLabel(member)}{isMe && " (du)"}
+                    {memberLabel(member)}{isMe && ` ${t("youSuffix", locale)}`}
                   </span>
                   <span className="text-lg">{p.teamFlag}</span>
                   <span className="text-sm font-semibold truncate max-w-[100px]">{p.teamName}</span>

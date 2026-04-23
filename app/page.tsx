@@ -41,7 +41,7 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-2xl leading-tight text-foreground">
-          Tipsa VM 2026 med{" "}
+          Tippa VM 2026 med{" "}
           <span className="text-[#e6a800]">dina vänner</span>
         </h1>
 

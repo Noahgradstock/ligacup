@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import { MatchCard } from "@/components/match-card";
 import { predWinnerIsHome, type FullPred } from "@/lib/predictor/winner";
+import { useLocale } from "@/lib/use-locale";
+import { t } from "@/lib/i18n";
 
 type BracketMatch = {
   matchId: string;
@@ -45,14 +47,16 @@ type Props = {
 };
 
 // Compact labels for the bracket overview column headers (space is tight)
-const ROUND_COMPACT: Record<string, string> = {
-  ROUND_OF_32: "Sextondels",
-  ROUND_OF_16: "Åttondels",
-  QF: "Kvartsfinal",
-  SF: "Semifinal",
-  FINAL: "Final/brons",
-  THIRD_PLACE: "Bronsmatch",
-};
+function getRoundCompact(locale: ReturnType<typeof useLocale>): Record<string, string> {
+  return {
+    ROUND_OF_32: t("roundOf32Label", locale),
+    ROUND_OF_16: t("roundOf16Label", locale),
+    QF: t("quarterFinalLabel", locale),
+    SF: t("semiFinalLabel", locale),
+    FINAL: t("finalBronzeLabel", locale),
+    THIRD_PLACE: t("bronzeMatchLabel", locale),
+  };
+}
 
 const SESSION_KEY = "bracket-active-round";
 
@@ -70,20 +74,22 @@ function isTbdSlot(slot: string | null, slotMap: Map<string, { name: string; fla
   return slot !== null && !slotMap.has(slot);
 }
 
-function slotLabel(slot: string | null): string {
+function slotLabel(slot: string | null, locale: ReturnType<typeof useLocale>): string {
   if (!slot) return "TBD";
-  if (slot.startsWith("VM")) return `V. match ${slot.slice(2)}`;
-  if (slot.startsWith("VK")) return `V. kvartsfinal ${slot.slice(2)}`;
-  if (slot.startsWith("VS")) return `V. semifinal ${slot.slice(2)}`;
-  if (slot.startsWith("VB")) return `F. semifinal ${slot.slice(2)}`;
+  if (slot.startsWith("VM")) return `${t("slotWinnerMatchPrefix", locale)} ${slot.slice(2)}`;
+  if (slot.startsWith("VK")) return `${t("slotWinnerQFPrefix", locale)} ${slot.slice(2)}`;
+  if (slot.startsWith("VS")) return `${t("slotWinnerSFPrefix", locale)} ${slot.slice(2)}`;
+  if (slot.startsWith("VB")) return `${t("slotLoserSFPrefix", locale)} ${slot.slice(2)}`;
   if (/^[123][A-L]/.test(slot)) {
-    const pos = slot[0] === "1" ? "Etta" : slot[0] === "2" ? "Tvåa" : "Trea";
+    const pos = slot[0] === "1" ? t("slotFirst", locale) : slot[0] === "2" ? t("slotSecond", locale) : t("slotThird", locale);
     return `${pos} ${slot.slice(1)}`;
   }
   return slot;
 }
 
 export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props) {
+  const locale = useLocale();
+  const ROUND_COMPACT = getRoundCompact(locale);
   const [activeRound, setActiveRound] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem(SESSION_KEY);
@@ -166,9 +172,9 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
         ...m,
         // When a slot exists but is not yet resolved (TBD), show the slot label
         // instead of the stale server-computed name from page load.
-        homeTeam: home?.name ?? (m.homeSlot ? slotLabel(m.homeSlot) : m.homeTeam),
+        homeTeam: home?.name ?? (m.homeSlot ? slotLabel(m.homeSlot, locale) : m.homeTeam),
         homeFlag: home?.flag ?? (m.homeSlot ? "🏳" : m.homeFlag),
-        awayTeam: away?.name ?? (m.awaySlot ? slotLabel(m.awaySlot) : m.awayTeam),
+        awayTeam: away?.name ?? (m.awaySlot ? slotLabel(m.awaySlot, locale) : m.awayTeam),
         awayFlag: away?.flag ?? (m.awaySlot ? "🏳" : m.awayFlag),
         isTbd: isTbdSlot(m.homeSlot, slotMap) || isTbdSlot(m.awaySlot, slotMap),
       };
@@ -248,14 +254,14 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
         <div className="mb-3 px-3 py-2.5 rounded-lg bg-secondary/50 border border-border">
           <p className="text-xs text-muted-foreground">
             {activeRound === "ROUND_OF_32"
-              ? "Lag är ännu inte klara — tippa vilket resultat du tror. Namnen uppdateras när gruppspelet är klart."
+              ? t("tbdR32", locale)
               : activeRound === "ROUND_OF_16"
-              ? "Tippa klart sextondelsfinalen för att se vilka lag som möts."
+              ? t("tbdR16", locale)
               : activeRound === "QF"
-              ? "Tippa klart åttondelsfinalerna för att se vilka lag som möts."
+              ? t("tbdQF", locale)
               : activeRound === "SF"
-              ? "Tippa klart kvartsfinalen för att se vilka lag som möts."
-              : "Tippa klart semifinalen för att se vilka lag som möts."}
+              ? t("tbdSF", locale)
+              : t("tbdFinal", locale)}
           </p>
         </div>
       )}
@@ -264,7 +270,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
       {cascadeCount > 0 && (
         <div className="mb-1 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 flex items-start justify-between gap-2">
           <p className="text-xs text-blue-800 dark:text-blue-300">
-            Vinnaren ändrades — {cascadeCount} efterföljande {cascadeCount === 1 ? "match" : "matcher"} rensades automatiskt.
+            {t("winnerChanged", locale)} — {cascadeCount} {t("subsequentCleared", locale)} {cascadeCount === 1 ? t("match", locale) : t("matches", locale)} {t("clearedAutomatically", locale)}
           </p>
           <button onClick={() => setCascadeCount(0)} className="text-blue-500 text-xs shrink-0 leading-none mt-0.5">✕</button>
         </div>
@@ -302,7 +308,7 @@ export function BracketView({ matches, rounds, leagueId, initialSlotMap }: Props
         })}
         {activeMatches.length === 0 && (
           <p className="text-muted-foreground text-sm text-center py-8">
-            Inga matcher i den här rundan.
+            {t("noMatchesInRound", locale)}
           </p>
         )}
       </div>
@@ -356,12 +362,16 @@ function BracketOverview({
   onSelectRound: (r: string) => void;
   predMap: Map<string, FullPred>;
 }) {
+  const locale = useLocale();
+  const ROUND_COMPACT = getRoundCompact(locale);
   if (rounds.length < 2) return null;
 
   return (
     <div className="mt-6 rounded-xl border border-border overflow-hidden">
       <div className="px-4 py-2.5 bg-secondary/50 border-b border-border">
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Bracket-översikt</span>
+        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {locale === "en" ? "Bracket overview" : "Bracket-översikt"}
+        </span>
       </div>
       <div className="overflow-x-auto">
         <div className="flex gap-0 min-w-max p-3">
@@ -412,7 +422,9 @@ function BracketOverview({
                     <>
                       <div className="flex items-center gap-1.5 pt-1">
                         <div className="flex-1 h-px bg-border/60" />
-                        <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide whitespace-nowrap">3:e plats</span>
+                        <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wide whitespace-nowrap">
+                          {locale === "en" ? "3rd place" : "3:e plats"}
+                        </span>
                         <div className="flex-1 h-px bg-border/60" />
                       </div>
                       {bronzeMatches.map((m) => (

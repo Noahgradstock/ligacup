@@ -105,6 +105,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   subscriptionTier: text("subscription_tier").notNull().default("free"), // free | pro | team
   stripeCustomerId: text("stripe_customer_id"),
+  locale: text("locale").notNull().default("sv"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq, count } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { predictions, leagueMembers, pointSnapshots } from "@/lib/db/schema";
 import { syncCurrentUser } from "@/lib/sync-user";
@@ -8,10 +9,15 @@ import { BottomNav } from "@/components/bottom-nav";
 import { ProfileForm } from "./profile-form";
 import { SignOutButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 
 export default async function ProfilePage() {
   const user = await syncCurrentUser();
   if (!user) redirect("/sign-in");
+
+  const cookieJar = await cookies();
+  const locale = (cookieJar.get("ligacup_locale")?.value ?? user.locale ?? "sv") as Locale;
 
   // Stats
   const [[{ value: predCount }], [{ value: leagueCount }], bestRank] =
@@ -64,10 +70,10 @@ export default async function ProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Tips", value: predCount },
-            { label: "Tipslag", value: leagueCount },
+            { label: t("predictionsStat", locale), value: predCount },
+            { label: t("leaguesStat", locale), value: leagueCount },
             {
-              label: "Bästa rank",
+              label: t("bestRankStat", locale),
               value: bestRank?.rankInLeague != null ? `#${bestRank.rankInLeague}` : "–",
             },
           ].map((s) => (
@@ -81,17 +87,17 @@ export default async function ProfilePage() {
           ))}
         </div>
 
-        {/* Edit name */}
+        {/* Edit name + language */}
         <section className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold">Redigera profil</h2>
-          <ProfileForm initialName={user.displayName ?? ""} />
+          <h2 className="text-sm font-semibold">{t("editProfileTitle", locale)}</h2>
+          <ProfileForm initialName={user.displayName ?? ""} initialLocale={locale} />
         </section>
 
         {/* Sign out */}
         <section className="flex flex-col gap-2 pt-4 border-t border-border">
           <SignOutButton redirectUrl="/">
             <Button variant="outline" className="w-full text-destructive hover:text-destructive">
-              Logga ut
+              {t("signOut", locale)}
             </Button>
           </SignOutButton>
         </section>
